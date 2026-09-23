@@ -183,3 +183,69 @@ actor RejectingContactAdapter: ApplicationAdapter {
   #expect(batch.commands.first?.kind == .openApp)
   #expect(batch.commands.first!.endOffset <= batch.stableEnd)
 }
+
+actor StageGateAdapter: ApplicationAdapter {
+  let heldKind: CommandKind
+  var enteredGate = false
+  var completed: [CommandKind] = []
+  private var continuation: CheckedContinuation<Void, Never>?
+  init(heldKind: CommandKind) { self.heldKind = heldKind }
+  func execute(_ command: Command, token: CancellationToken, revision: Int, policy: SafetyPolicy)
+    async throws -> String
+  {
+    try token.check(revision: revision)
+    if command.kind == heldKind {
+      enteredGate = true
+      await withCheckedContinuation { continuation = $0 }
+    }
+    try token.check(revision: revision)
+    completed.append(command.kind)
+    return command.kind == .send ? "dryRun" : "success"
+  }
+  func release() {
+    continuation?.resume()
+    continuation = nil
+  }
+  func reset() {}
+}
+
+@Test(arguments: [CommandKind.openApp, .contact, .typeText, .send])
+func cancellationAtEveryActionBoundary(_ heldKind: CommandKind) async throws {
+  let adapter = StageGateAdapter(heldKind: heldKind)
+  let token = CancellationToken()
+  let queue = ActionQueue(adapter: adapter, token: token, policy: SafetyPolicy(), event: { _ in })
+  var machine = CommandStateMachine()
+  let phrase = "Open WhatsApp, go to Synthetic Contact, type synthetic draft and send"
+  await queue.submit(machine.ingest(text: phrase, committed: phrase, now: 1))
+  let deadline = ContinuousClock.now.advanced(by: .seconds(2))
+  while !(await adapter.enteredGate), ContinuousClock.now < deadline {
+    try await Task.sleep(for: .milliseconds(1))
+  }
+  #expect(await adapter.enteredGate)
+  token.cancel()
+  await queue.cancel()
+  await adapter.release()
+  try await Task.sleep(for: .milliseconds(20))
+  let kinds: [CommandKind] = [.openApp, .contact, .typeText, .send]
+  let index = kinds.firstIndex(of: heldKind)!
+  #expect(await adapter.completed == Array(kinds.prefix(index)))
+}
+
+@Test func opensBeforeFinalWhileLaterClausesAreStillArriving() async throws {
+  let adapter = MockAdapter()
+  let queue = ActionQueue(
+    adapter: adapter, token: CancellationToken(), policy: SafetyPolicy(), event: { _ in })
+  var machine = CommandStateMachine()
+  await queue.submit(machine.ingest(text: "Open WhatsApp", committed: "", now: 1))
+  await queue.submit(machine.ingest(text: "Open WhatsApp, go to", committed: "", now: 1.2))
+  try await Task.sleep(for: .milliseconds(20))
+  #expect(await adapter.commands.map(\.kind) == [.openApp])
+  let phrase = "Open WhatsApp, go to Synthetic Contact, type hi and send"
+  await queue.submit(machine.ingest(text: phrase, committed: "Open WhatsApp", now: 1.3))
+  await queue.submit(machine.ingest(text: phrase, committed: "Open WhatsApp", now: 1.6))
+  try await Task.sleep(for: .milliseconds(20))
+  #expect(await adapter.commands.map(\.kind) == [.openApp, .contact, .typeText])
+  await queue.submit(machine.ingest(text: phrase, committed: phrase, now: 2))
+  try await Task.sleep(for: .milliseconds(20))
+  #expect(await adapter.commands.map(\.kind) == [.openApp, .contact, .typeText, .send])
+}
