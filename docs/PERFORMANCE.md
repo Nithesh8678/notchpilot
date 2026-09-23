@@ -25,7 +25,7 @@ Process CPU time is an energy-related proxy, not measured watts or joules. No pr
 
 ## Native measurements
 
-Latest installed release harness after moving Python dependencies into Application Support:
+Installed release harness after moving Python dependencies into Application Support:
 
 | Measurement | Observed result |
 |---|---:|
@@ -38,6 +38,8 @@ Latest installed release harness after moving Python dependencies into Applicati
 The sidecar returned a gated abstention. Microphone permission was granted, but Accessibility was not. This run therefore does **not** verify the global hotkey, live microphone transcription, or WhatsApp control; its false hotkey results are blocked acceptance gates. The idle CPU figure is a snapshot, not a long-duration energy measurement. Real-time paced synthetic speech independently produced a stable app-opening clause before finalization.
 
 An earlier installed run could not load the Python runtime from the Documents checkout. Installing a separate pinned runtime in Application Support resolved the observed failure without requesting broader file access.
+
+After the packaging-only bytecode-cache correction, a repeat measured dispatch **0.072 / 0.124 ms p50/p95**, overlay submission **5.00 / 41.30 ms**, main-loop lateness **1.23 ms p95**, and native RSS **92.1 MB**. The model again returned an abstention and the app signature verified successfully after inference. Both permission gates require reapproval for this corrected ad-hoc bundle; these are internal harness measurements, not completed end-to-end acceptance.
 
 Targets: hotkey callback to visible overlay p50 <50 ms; stable direct clause to dispatch p50 <150 ms/p95 <300 ms; idle CPU <1%; native and speech components approximately <500 MB; sidecar approximately <2.5 GB. Third-party cold launches are excluded.
 
