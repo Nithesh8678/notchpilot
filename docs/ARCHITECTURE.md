@@ -33,3 +33,5 @@ flowchart LR
 `LayaDecisionService` runs an isolated Python process over inherited pipes, without a listening socket. It loads one model, serializes inference, constrains requests to fewer than 20 options, and kills obsolete requests. It does not route deterministic commands, produce message text, plan steps, or invoke APIs. Conservative abstention is used until project-specific held-out validation clears the decision gate. The future planner is deliberately absent from 0.1.0.
 
 `Diagnostics` writes a bounded privacy-safe local audit off the UI thread. `PerformanceMonitor` exposes process memory and measured timestamps; benchmark scripts separate native dispatch from third-party launch and recognition latency.
+
+The development Python environment remains project-local. Setup copies its pinned packages into a versioned private runtime in Application Support, preserving the selected model/backend in the local configuration. This avoids requiring Documents-folder access when the checkout lives there. Runtime versions are keyed by the dependency lock and Python version.

@@ -15,7 +15,7 @@ Requires Apple Silicon, macOS 26, Xcode 26+ (including accepted license), Python
 ./scripts/run.sh
 ```
 
-Setup creates `.venv`, installs pinned dependencies, downloads one optional Laya checkpoint into Application Support, and installs a local `.app` in `~/Applications/NotchPilot.app`. Approve **Microphone** and **Accessibility** in Setup, then prepare the local speech assets. Screen Recording is not needed. `./scripts/bootstrap.sh --skip-model` builds deterministic control without model downloads.
+Setup creates a development `.venv`, installs a private copy of its pinned runtime in Application Support, downloads one optional Laya checkpoint there, and installs a local `.app` in `~/Applications/NotchPilot.app`. Approve **Microphone** and **Accessibility** in Setup, then prepare the local speech assets. Screen Recording is not needed. `./scripts/bootstrap.sh --skip-model` builds deterministic control without model downloads.
 
 Press **Option + Space** to listen. Press it again, or **Escape**, to cancel and stop the microphone. The shortcut is configurable. Hold-to-talk is optional. Each session has a 60-second limit.
 
@@ -47,7 +47,7 @@ No audio retention, transcript uploads, telemetry or automatic crash uploads. Tr
 ./scripts/package.sh     # verified ad-hoc local ZIP; not notarized
 ```
 
-Native builds are staged outside synced Documents folders to avoid Finder metadata interfering with code signing. After setup, the Finder-launchable app is installed in `~/Applications/NotchPilot.app` and linked from `build/NotchPilot.app`. Keep the source and `.venv` in place for the optional Python sidecar. See [permissions](docs/PERMISSIONS.md) for development-build permission resets.
+Native builds are staged outside synced Documents folders to avoid Finder metadata interfering with code signing. After setup, the Finder-launchable app is installed in `~/Applications/NotchPilot.app` and linked from `build/NotchPilot.app`. The installed Python runtime is independent of the checkout, so the sidecar does not need access to Documents or Desktop. Keep the Homebrew/system Python used during setup installed; rerun bootstrap after replacing it. See [permissions](docs/PERMISSIONS.md) for development-build permission resets.
 
 [Architecture](docs/ARCHITECTURE.md) · [Performance](docs/PERFORMANCE.md) · [Adding an adapter](docs/ADDING_AN_APP_ADAPTER.md) · [Contributing](CONTRIBUTING.md) · [Third-party notices](THIRD_PARTY_NOTICES.md)
 

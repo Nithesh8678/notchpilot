@@ -6,7 +6,7 @@ Launch the built app. Setup explains each requested permission and provides the 
 2. **Accessibility:** click Open Accessibility Settings, enable NotchPilot under Privacy & Security → Accessibility, then refresh permission status. macOS may request your password or Touch ID. Only you should approve that step.
 3. **Local speech assets:** choose a supported language identifier, then Install / Prepare Speech Assets. Apple may download the language pack. SpeechAnalyzer recognition is on-device and does not require a remote recognition fallback.
 
-This version does not request Screen Recording or Automation. Speech recognition authorization is not requested because the selected on-device SpeechAnalyzer API does not use the legacy SFSpeechRecognizer authorization path.
+This version does not request Screen Recording, Automation, Documents access, or Full Disk Access. The installed Python runtime and model weights reside in Application Support. Speech recognition authorization is not requested because the selected on-device SpeechAnalyzer API does not use the legacy SFSpeechRecognizer authorization path.
 
 Denied or revoked microphone access returns to onboarding. Denied Accessibility prevents control and shows the settings route rather than crashing. Direct app launching does not itself need Accessibility; the WhatsApp workflow does.
 
