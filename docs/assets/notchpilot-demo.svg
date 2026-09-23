@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="420" viewBox="0 0 900 420">
+<rect width="900" height="420" rx="24" fill="#151b24"/>
+<rect x="345" width="210" height="35" rx="12" fill="#000"/>
+<rect x="230" y="30" width="440" height="152" rx="28" fill="#000" stroke="#30343a"/>
+<g font-family="system-ui,-apple-system,sans-serif" fill="#fff">
+<text x="258" y="66" font-size="16" font-weight="600">◒  NotchPilot</text>
+<text x="589" y="66" font-size="12" fill="#75ebcb">Success</text>
+<text x="258" y="100" font-size="15">Dry Run complete · message was not sent</text>
+<text x="258" y="129" font-size="12" fill="#aaa">Open WhatsApp, go to Mummy, type hi and send</text>
+<text x="258" y="158" font-size="11" fill="#888">Synthetic example · Escape cancels</text>
+<text x="450" y="270" text-anchor="middle" font-size="29" font-weight="600">Speak locally. Act deliberately.</text>
+<text x="450" y="307" text-anchor="middle" fill="#95a0b2" font-size="15">Option + Space  ·  On-device speech  ·  Dry Run by default</text>
+<text x="450" y="375" text-anchor="middle" fill="#738093" font-size="11">Illustration of the interface, using synthetic data</text>
+</g></svg>
