@@ -83,7 +83,12 @@ final class AccessibilityClient: @unchecked Sendable {
       let item = node(element)
       if matching(item) { matches.append(item) }
       guard depth < 16 else { continue }
-      if !includeChatList && item.identifier == "ChatListView_TableView" { continue }
+      if !includeChatList
+        && (item.identifier == "ChatListView_TableView"
+          || TextNormalization.identity(item.label) == "search results")
+      {
+        continue
+      }
       if !includeMessages && item.identifier == "ChatMessagesTableView" { continue }
       queue.append(contentsOf: children(element).map { ($0, depth + 1) })
     }
@@ -123,7 +128,8 @@ final class AccessibilityClient: @unchecked Sendable {
     }
   }
   func setText(
-    _ node: AXNode, text: String, previous: String? = nil, token: CancellationToken, revision: Int
+    _ node: AXNode, text: String, previous: String? = nil, preferKeyboard: Bool = false,
+    token: CancellationToken, revision: Int
   ) throws {
     try token.check(revision: revision)
     let old = string(node.element, kAXValueAttribute)
@@ -132,17 +138,20 @@ final class AccessibilityClient: @unchecked Sendable {
         "The field already contains text. Clear it yourself before continuing.")
     }
     if old == text { return }
-    if AXUIElementSetAttributeValue(node.element, kAXValueAttribute as CFString, text as CFString)
-      == .success,
+    if !preferKeyboard,
+      AXUIElementSetAttributeValue(node.element, kAXValueAttribute as CFString, text as CFString)
+        == .success,
       string(node.element, kAXValueAttribute) == text
     {
       return
     }
     // Verified keyboard fallback: exact AX focus and target process are required.
-    guard
-      AXUIElementSetAttributeValue(node.element, kAXFocusedAttribute as CFString, kCFBooleanTrue)
-        == .success,
-      let focused = attribute(app, kAXFocusedUIElementAttribute), CFEqual(focused, node.element)
+    let currentFocus = attribute(app, kAXFocusedUIElementAttribute)
+    if currentFocus == nil || !CFEqual(currentFocus, node.element) {
+      _ = AXUIElementSetAttributeValue(
+        node.element, kAXFocusedAttribute as CFString, kCFBooleanTrue)
+    }
+    guard let focused = attribute(app, kAXFocusedUIElementAttribute), CFEqual(focused, node.element)
     else {
       throw PilotError.unavailable("This field cannot be edited safely through Accessibility.")
     }

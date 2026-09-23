@@ -32,11 +32,29 @@ actor WhatsAppAdapter: ApplicationAdapter {
       }
       try await client.wait(token: token) { !client.windows().isEmpty }
       let target = ContactResolver.resolve(command.value, aliases: aliases)
-      var search = try client.unique(identifier: "TokenizedSearchBar_TextView")
-      // Focusing search exposes its edit field in the current native WhatsApp.
-      _ = AXUIElementSetAttributeValue(
-        search.element, kAXFocusedAttribute as CFString, kCFBooleanTrue)
-      search = try client.unique(identifier: "TokenizedSearchBar_TextView")
+      // Use the application's native File > Search menu command. Merely pressing
+      // the Catalyst search label does not reliably focus the editable control.
+      var menuItems = client.search {
+        $0.role == kAXMenuItemRole && TextNormalization.identity($0.identifier) == "search"
+      }
+      if menuItems.isEmpty {
+        let fileMenu = client.search {
+          $0.role == kAXMenuBarItemRole
+            && $0.names.contains { TextNormalization.identity($0) == "file" }
+        }
+        guard fileMenu.count == 1 else {
+          throw PilotError.unavailable("WhatsApp Search menu is unavailable.")
+        }
+        try client.press(fileMenu[0], token: token, revision: revision)
+        menuItems = client.search {
+          $0.role == kAXMenuItemRole && TextNormalization.identity($0.identifier) == "search"
+        }
+      }
+      guard menuItems.count == 1 else {
+        throw PilotError.unavailable("A unique WhatsApp Search menu command is required.")
+      }
+      try client.press(menuItems[0], token: token, revision: revision)
+      let search = try client.unique(identifier: "TokenizedSearchBar_TextView")
       let oldSearch = client.string(search.element, kAXValueAttribute)
       try client.setText(
         search, text: target, previous: oldSearch, token: token, revision: revision)
@@ -48,11 +66,21 @@ actor WhatsAppAdapter: ApplicationAdapter {
         // Read only labels, never chat preview values or unrelated message tables.
         let roots = client.search { TextNormalization.identity($0.label) == "search results" }
         guard roots.count == 1 else { return false }
-        candidates = client.search(root: roots[0].element, includeChatList: true) { node in
-          node.names.contains {
-            TextNormalization.identity($0) == TextNormalization.identity(target)
+        candidates = []
+        var section = ConversationSearchSection()
+        for child in client.children(roots[0].element) {
+          let node = client.node(child)
+          let headings = client.search(root: child) { $0.role == kAXHeadingRole }.flatMap(\.names)
+          if let heading = headings.first(where: { ConversationSearchSection.isHeading($0) }) {
+            section.enter(heading)
+            continue
           }
-            && node.identifier != "NavigationBar_HeaderViewButton"
+          guard section.acceptsConversation,
+            node.names.contains(where: {
+              TextNormalization.identity($0) == TextNormalization.identity(target)
+            })
+          else { continue }
+          candidates.append(node)
         }
         return !candidates.isEmpty
       }
@@ -76,7 +104,8 @@ actor WhatsAppAdapter: ApplicationAdapter {
       }
       let composer = try client.unique(identifier: "ChatBar_ComposerTextView")
       try client.setText(
-        composer, text: command.value, previous: draft, token: token, revision: revision)
+        composer, text: command.value, previous: draft, preferKeyboard: true, token: token,
+        revision: revision)
       try await client.wait(token: token, revision: revision, timeout: 4) {
         client.string(composer.element, kAXValueAttribute) == command.value
       }

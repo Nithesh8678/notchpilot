@@ -87,8 +87,7 @@ public struct StreamingCommandParser: Sendable {
 
 public struct TranscriptStability: Sendable {
   private var previous = ""
-  private var unchangedSince: TimeInterval = 0
-  private var previousTime: TimeInterval = 0
+  private var firstSeen: [TimeInterval] = []
   public private(set) var volatile = ""
   public private(set) var committedPrefix = ""
   public init() {}
@@ -99,11 +98,10 @@ public struct TranscriptStability: Sendable {
     let b = Array(text.utf16)
     var common = 0
     while common < min(a.count, b.count), a[common] == b[common] { common += 1 }
-    let repeated = now - previousTime >= 0.15
-    if text != previous { unchangedSince = now }
-    let stable = repeated ? common : 0
+    firstSeen = Array(firstSeen.prefix(common)) + Array(repeating: now, count: b.count - common)
+    var stable = 0
+    while stable < common, now - firstSeen[stable] >= 0.15 { stable += 1 }
     previous = text
-    previousTime = now
     return max((committed as NSString).length, stable)
   }
 }

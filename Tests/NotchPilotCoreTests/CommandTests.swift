@@ -160,3 +160,26 @@ actor RejectingContactAdapter: ApplicationAdapter {
   try await Task.sleep(nanoseconds: 30_000_000)
   #expect(await adapter.kinds == [.contact])
 }
+
+@Test func messageSearchHitsAreNotRecipients() {
+  var section = ConversationSearchSection()
+  #expect(!section.acceptsConversation)
+  section.enter("\u{200e}Chats")
+  #expect(section.acceptsConversation)
+  section.enter("Groups in common")
+  #expect(!section.acceptsConversation)
+  section.enter("Messages")
+  #expect(!section.acceptsConversation)
+  section.enter("Contacts")
+  #expect(section.acceptsConversation)
+}
+
+@Test func frequentPartialUpdatesKeepPrefixAge() {
+  var machine = CommandStateMachine()
+  _ = machine.ingest(text: "Open WhatsApp", committed: "", now: 1)
+  _ = machine.ingest(text: "Open WhatsApp, then", committed: "", now: 1.05)
+  _ = machine.ingest(text: "Open WhatsApp, then go", committed: "", now: 1.10)
+  let batch = machine.ingest(text: "Open WhatsApp, then go to Mummy", committed: "", now: 1.16)
+  #expect(batch.commands.first?.kind == .openApp)
+  #expect(batch.commands.first!.endOffset <= batch.stableEnd)
+}
