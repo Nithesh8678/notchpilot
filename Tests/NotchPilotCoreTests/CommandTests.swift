@@ -87,3 +87,9 @@ actor MockAdapter: ApplicationAdapter {
     try await Task.sleep(nanoseconds: 60_000_000)
     #expect(await adapter.commands.isEmpty)
 }
+@Test func exactContactsAndAliases() throws {
+    #expect(ContactResolver.resolve("Mummy", aliases: ["mummy": "Test Contact"]) == "Test Contact")
+    #expect(try ContactResolver.exactIndex(target: "Mummy", candidates: ["Mummy Work", "\u{200e}Mummy"]) == 1)
+    #expect(throws: PilotError.self) { try ContactResolver.exactIndex(target: "Mummy", candidates: ["Mummy", "MUMMY"]) }
+    #expect(throws: PilotError.self) { try ContactResolver.exactIndex(target: "Mummy", candidates: []) }
+}
