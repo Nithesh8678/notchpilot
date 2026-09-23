@@ -12,7 +12,11 @@ import NotchPilotCore
     accessibility = AXIsProcessTrusted()
   }
   func requestMicrophone() async {
-    _ = await AVCaptureDevice.requestAccess(for: .audio)
+    if AVCaptureDevice.authorizationStatus(for: .audio) == .notDetermined {
+      _ = await AVCaptureDevice.requestAccess(for: .audio)
+    } else if AVCaptureDevice.authorizationStatus(for: .audio) != .authorized {
+      openPane("Privacy_Microphone")
+    }
     refresh()
   }
   func openAccessibility() {

@@ -25,7 +25,9 @@ Process CPU time is an energy-related proxy, not measured watts or joules. No pr
 
 ## Native measurements
 
-Preliminary internal harness: parser-to-mock-adapter dispatch p50 0.077 ms, p95 0.162 ms (100 calls); overlay window submission p50 0.66 ms, p95 3.45 ms (30 calls); native resident memory 41.5 MB after the harness. This run lacked the rebuilt app’s permissions: it did not verify a real hotkey callback, microphone capture, WhatsApp control, or inference responsiveness. These preliminary numbers are not completed acceptance results.
+Release harness before the latest adapter fix: parser-to-mock-adapter dispatch p50 **0.050 ms**, p95 **0.085 ms** (100 calls); overlay window submission p50 **5.29 ms**, p95 **15.30 ms** (30 calls); native resident memory **99.9 MB** after the harness. The real sidecar returned a gated abstention, while main-loop wake lateness was **1.24 ms p95**. An idle process snapshot showed **0.0% CPU** and approximately **98 MB RSS**; this is a snapshot, not a long-duration energy measurement.
+
+The next installed revision measured dispatch **0.054 / 0.120 ms p50/p95**, overlay submission **6.37 / 16.06 ms**, and native RSS **103.4 MB**, but its sidecar returned unavailable. Both runs lacked the rebuilt app’s Microphone and Accessibility permissions. Neither verifies a real hotkey callback, microphone capture, or WhatsApp control; the false hotkey results are recorded as blocked, not passing. Real-time paced synthetic speech independently produced an early app-opening clause before finalization.
 
 Targets: hotkey callback to visible overlay p50 <50 ms; stable direct clause to dispatch p50 <150 ms/p95 <300 ms; idle CPU <1%; native and speech components approximately <500 MB; sidecar approximately <2.5 GB. Third-party cold launches are excluded.
 

@@ -3,14 +3,14 @@
 This file records observed results rather than assuming that a successful build proves live control.
 
 - Native app compiles and launches as a real ad-hoc `.app`.
-- 16 Swift tests and 8 Python tests pass locally.
+- 18 Swift tests and 8 Python tests pass locally.
 - Formatting and tracked-file privacy/attribution checks pass.
-- Synthetic file recognition returned 17 incremental results, 16 volatile, and parsed the four expected command categories. Real-time paced replay is being checked separately.
+- Real-time paced synthetic file recognition returned 17 incremental results, 16 volatile, and recognized a stable app-opening clause before finalization. It parsed the four expected command categories. The synthetic voice’s “hi” was recognized as “tie”; dictated text is not silently corrected. Live microphone recognition is not yet verified.
 - CPU/MPS benchmarks for both checkpoints completed; the offline sidecar returned a gated abstention through its real private stdio protocol.
-- Microphone onboarding was approved; Accessibility for the rebuilt app is awaiting user approval.
-- Global hotkey, microphone capture, native WhatsApp dry-run, cancellation during each live stage, and inference responsiveness remain pending final permission-enabled verification.
+- Microphone onboarding was approved for an earlier build. The latest installed ad-hoc build reports Microphone and Accessibility unavailable; macOS reapproval is pending.
+- Global hotkey, microphone capture, native WhatsApp dry-run, cancellation during each live stage, remain pending final permission-enabled verification. An earlier installed release completed real sidecar inference with main-loop wake lateness p95 1.24 ms; a later run returned model unavailable and requires investigation.
 - A live message test has not been enabled or run. Automated tests cannot send real messages.
 - External-display geometry and permission-denial logic are unit-tested; physical external display and fullscreen/multi-Space checks are not yet verified.
-- GitHub CI verification is pending the first push.
+- The initial public repository CI passed (run 35865085114). Subsequent changes require their own CI verification.
 
 The project must not be described as complete while applicable gates remain pending.
