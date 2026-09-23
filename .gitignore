@@ -1,0 +1,17 @@
+.build/
+build/
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+*.safetensors
+*.pt
+*.pth
+*.bin
+.env*
+*.log
+.local/
+models/
+benchmark-results/
+*.aiff
+*.wav
