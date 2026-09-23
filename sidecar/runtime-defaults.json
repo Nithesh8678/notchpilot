@@ -1,0 +1,6 @@
+{
+  "model_name": "multilingual",
+  "backend": "mps",
+  "threads": 2,
+  "calibration": {"validated": false, "threshold": 1.01, "margin": 1.01}
+}

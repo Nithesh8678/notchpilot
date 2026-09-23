@@ -1,0 +1,12 @@
+{
+  "english": {
+    "repo": "convaiinnovations/laya",
+    "revision": "5e7b2b1b8ca2ecdd3f2322d94069c9b6ce7e844b",
+    "license": "apache-2.0"
+  },
+  "multilingual": {
+    "repo": "convaiinnovations/laya-multilingual",
+    "revision": "b4a904d1a2a54c822b829e24291d4b8f280fe43e",
+    "license": "apache-2.0"
+  }
+}

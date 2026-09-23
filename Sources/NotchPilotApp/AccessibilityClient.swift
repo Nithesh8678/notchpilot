@@ -68,7 +68,11 @@ final class AccessibilityClient: @unchecked Sendable {
             try token.check(revision: revision); try Task.checkCancellation()
             if try condition() { return }
             // Observer wakes promptly; timeout covers apps that omit notifications.
-            _ = await Task.detached(priority: .utility) { [signal] in signal.wait(timeout: .now() + 0.2) }.value
+            await withCheckedContinuation { continuation in
+                DispatchQueue.global(qos: .utility).async { [signal] in
+                    _ = signal.wait(timeout: .now() + 0.2); continuation.resume()
+                }
+            }
         } while Date() < deadline
         throw PilotError.timeout
     }

@@ -1,0 +1,242 @@
+[
+  {
+    "text": "Bring WhatsApp to the front",
+    "label": "open_whatsapp",
+    "split": "calibration"
+  },
+  {
+    "text": "Switch over to WhatsApp",
+    "label": "open_whatsapp",
+    "split": "test"
+  },
+  {
+    "text": "Can you launch WhatsApp please",
+    "label": "open_whatsapp",
+    "split": "calibration"
+  },
+  {
+    "text": "I would like to open WhatsApp",
+    "label": "open_whatsapp",
+    "split": "test"
+  },
+  {
+    "text": "Show me the WhatsApp application",
+    "label": "open_whatsapp",
+    "split": "calibration"
+  },
+  {
+    "text": "Get WhatsApp on screen",
+    "label": "open_whatsapp",
+    "split": "test"
+  },
+  {
+    "text": "Activate WhatsApp",
+    "label": "open_whatsapp",
+    "split": "calibration"
+  },
+  {
+    "text": "Start the WhatsApp app",
+    "label": "open_whatsapp",
+    "split": "test"
+  },
+  {
+    "text": "Bring Safari to the front",
+    "label": "open_safari",
+    "split": "calibration"
+  },
+  {
+    "text": "Switch over to Safari",
+    "label": "open_safari",
+    "split": "test"
+  },
+  {
+    "text": "Can you launch Safari please",
+    "label": "open_safari",
+    "split": "calibration"
+  },
+  {
+    "text": "I would like to open Safari",
+    "label": "open_safari",
+    "split": "test"
+  },
+  {
+    "text": "Show me the Safari application",
+    "label": "open_safari",
+    "split": "calibration"
+  },
+  {
+    "text": "Get Safari on screen",
+    "label": "open_safari",
+    "split": "test"
+  },
+  {
+    "text": "Activate Safari",
+    "label": "open_safari",
+    "split": "calibration"
+  },
+  {
+    "text": "Start the Safari app",
+    "label": "open_safari",
+    "split": "test"
+  },
+  {
+    "text": "Bring Notes to the front",
+    "label": "open_notes",
+    "split": "calibration"
+  },
+  {
+    "text": "Switch over to Notes",
+    "label": "open_notes",
+    "split": "test"
+  },
+  {
+    "text": "Can you launch Notes please",
+    "label": "open_notes",
+    "split": "calibration"
+  },
+  {
+    "text": "I would like to open Notes",
+    "label": "open_notes",
+    "split": "test"
+  },
+  {
+    "text": "Show me the Notes application",
+    "label": "open_notes",
+    "split": "calibration"
+  },
+  {
+    "text": "Get Notes on screen",
+    "label": "open_notes",
+    "split": "test"
+  },
+  {
+    "text": "Activate Notes",
+    "label": "open_notes",
+    "split": "calibration"
+  },
+  {
+    "text": "Start the Notes app",
+    "label": "open_notes",
+    "split": "test"
+  },
+  {
+    "text": "Bring Finder to the front",
+    "label": "open_finder",
+    "split": "calibration"
+  },
+  {
+    "text": "Switch over to Finder",
+    "label": "open_finder",
+    "split": "test"
+  },
+  {
+    "text": "Can you launch Finder please",
+    "label": "open_finder",
+    "split": "calibration"
+  },
+  {
+    "text": "I would like to open Finder",
+    "label": "open_finder",
+    "split": "test"
+  },
+  {
+    "text": "Show me the Finder application",
+    "label": "open_finder",
+    "split": "calibration"
+  },
+  {
+    "text": "Get Finder on screen",
+    "label": "open_finder",
+    "split": "test"
+  },
+  {
+    "text": "Activate Finder",
+    "label": "open_finder",
+    "split": "calibration"
+  },
+  {
+    "text": "Start the Finder app",
+    "label": "open_finder",
+    "split": "test"
+  },
+  {
+    "text": "Send a message to a contact",
+    "label": "unsupported",
+    "split": "calibration"
+  },
+  {
+    "text": "Delete all my files",
+    "label": "unsupported",
+    "split": "test"
+  },
+  {
+    "text": "What is the weather",
+    "label": "unsupported",
+    "split": "calibration"
+  },
+  {
+    "text": "Transfer money",
+    "label": "unsupported",
+    "split": "test"
+  },
+  {
+    "text": "Turn up the volume",
+    "label": "unsupported",
+    "split": "calibration"
+  },
+  {
+    "text": "Close the app",
+    "label": "unsupported",
+    "split": "test"
+  },
+  {
+    "text": "WhatsApp is a messaging app",
+    "label": "unsupported",
+    "split": "calibration"
+  },
+  {
+    "text": "Do not open Safari",
+    "label": "unsupported",
+    "split": "test"
+  },
+  {
+    "text": "I wrote notes yesterday",
+    "label": "unsupported",
+    "split": "calibration"
+  },
+  {
+    "text": "Search for a contact",
+    "label": "unsupported",
+    "split": "test"
+  },
+  {
+    "text": "Buy a new laptop",
+    "label": "unsupported",
+    "split": "calibration"
+  },
+  {
+    "text": "Change my password",
+    "label": "unsupported",
+    "split": "test"
+  },
+  {
+    "text": "Post this publicly",
+    "label": "unsupported",
+    "split": "calibration"
+  },
+  {
+    "text": "Tell me a joke",
+    "label": "unsupported",
+    "split": "test"
+  },
+  {
+    "text": "Stop the music",
+    "label": "unsupported",
+    "split": "calibration"
+  },
+  {
+    "text": "Open an unsupported game",
+    "label": "unsupported",
+    "split": "test"
+  }
+]

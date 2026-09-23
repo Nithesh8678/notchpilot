@@ -5,6 +5,7 @@ public struct CommandBatch: Sendable {
     public let commands: [Command]
     public let stableEnd: Int
     public let committedEnd: Int
+    public init(revision: Int, commands: [Command], stableEnd: Int, committedEnd: Int) { self.revision = revision; self.commands = commands; self.stableEnd = stableEnd; self.committedEnd = committedEnd }
 }
 public struct CommandStateMachine: Sendable {
     private var stability = TranscriptStability()
