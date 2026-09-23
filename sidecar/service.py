@@ -7,6 +7,8 @@ from pathlib import Path
 import sys
 import time
 
+# App bundle resources are sealed by code signing and must remain read-only.
+sys.dont_write_bytecode = True
 os.environ.update(USE_TF='0', HF_HUB_OFFLINE='1', TRANSFORMERS_OFFLINE='1',
                   HF_HUB_DISABLE_TELEMETRY='1', TOKENIZERS_PARALLELISM='false')
 sys.path.insert(0, str(Path(__file__).parent / 'vendor'))

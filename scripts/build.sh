@@ -6,6 +6,7 @@ NP_BIN="$(swift build --build-system native --disable-sandbox -c "$NP_CONFIGURAT
 NP_OUTPUT="${NOTCHPILOT_BUILD_DIR:-${TMPDIR:-/tmp}/notchpilot-build-$UID}"
 NP_APP="$NP_OUTPUT/NotchPilot.app"
 mkdir -p "$NP_APP/Contents/MacOS" "$NP_APP/Contents/Resources/sidecar/vendor/laya"
+find "$NP_APP/Contents/Resources/sidecar" -type d -name __pycache__ -prune -exec rm -rf {} +
 cp "$NP_BIN/NotchPilot" "$NP_APP/Contents/MacOS/NotchPilot"
 cp Resources/Info.plist "$NP_APP/Contents/Info.plist"
 cp sidecar/service.py sidecar/protocol.py "$NP_APP/Contents/Resources/sidecar/"

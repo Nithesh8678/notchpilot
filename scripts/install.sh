@@ -9,6 +9,7 @@ if [ -e "$NP_INSTALLED_APP" ]; then
 fi
 mkdir -p "$HOME/Applications"
 if [ "$NP_SOURCE_APP" != "$NP_INSTALLED_APP" ]; then ditto "$NP_SOURCE_APP" "$NP_INSTALLED_APP"; fi
+find "$NP_INSTALLED_APP/Contents/Resources/sidecar" -type d -name __pycache__ -prune -exec rm -rf {} +
 xattr -cr "$NP_INSTALLED_APP"
 codesign --verify --strict "$NP_INSTALLED_APP"
 ln -sfn "$NP_INSTALLED_APP" "$NP_ROOT/build/NotchPilot.app"
