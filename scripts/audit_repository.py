@@ -13,7 +13,7 @@ for name in filter(None,files):
     if path.is_file():
         text = path.read_text(errors='ignore')
         # No machine-specific account paths or credentials in the publishable source.
-        if '/Users/' in text or 'ghp_' in text or 'github_pat_' in text:
+        if ('/' + 'Users/') in text or ('gh' + 'p_') in text or ('github' + '_pat_') in text:
             errors.append('Potential private data in: '+name)
 for required in ['LICENSE','THIRD_PARTY_NOTICES.md','PRIVACY.md','SECURITY.md']:
     if not (root/required).is_file(): errors.append('Missing '+required)
