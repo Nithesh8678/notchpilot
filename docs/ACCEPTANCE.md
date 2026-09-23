@@ -7,10 +7,11 @@ This file records observed results rather than assuming that a successful build 
 - Formatting and tracked-file privacy/attribution checks pass.
 - Real-time paced synthetic file recognition returned 17 incremental results, 16 volatile, and recognized a stable app-opening clause before finalization. It parsed the four expected command categories. The synthetic voice’s “hi” was recognized as “tie”; dictated text is not silently corrected. Live microphone recognition is not yet verified.
 - CPU/MPS benchmarks for both checkpoints completed; the offline sidecar returned a gated abstention through its real private stdio protocol.
-- Microphone onboarding was approved for an earlier build. The latest installed ad-hoc build reports Microphone and Accessibility unavailable; macOS reapproval is pending.
-- Global hotkey, microphone capture, native WhatsApp dry-run, cancellation during each live stage, remain pending final permission-enabled verification. An earlier installed release completed real sidecar inference with main-loop wake lateness p95 1.24 ms; a later run returned model unavailable and requires investigation.
+- The latest installed build reports Microphone allowed and on-device speech assets ready. Accessibility still reports denied despite an enabled entry in System Settings; reapproval for the rebuilt ad-hoc app is pending.
+- Global hotkey, microphone capture, native WhatsApp dry-run, cancellation during each live stage, remain pending final permission-enabled verification. After relocating the installed Python runtime into Application Support, the installed app completed real sidecar inference with main-loop wake lateness p95 1.24 ms. The earlier model-unavailable result was traced to source-folder access.
+- The synthetic in-app demo displays a nonactivating black overlay with state, action, and queued-action labels. Its draft/send operations are mocked.
 - A live message test has not been enabled or run. Automated tests cannot send real messages.
 - External-display geometry and permission-denial logic are unit-tested; physical external display and fullscreen/multi-Space checks are not yet verified.
-- The initial public repository CI passed (run 35865085114). Subsequent changes require their own CI verification.
+- Public repository CI passed for the initial push and subsequent native fixes (runs 35865085114 and 35866555257). Later source changes require their own CI verification.
 
 The project must not be described as complete while applicable gates remain pending.

@@ -25,9 +25,19 @@ Process CPU time is an energy-related proxy, not measured watts or joules. No pr
 
 ## Native measurements
 
-Release harness before the latest adapter fix: parser-to-mock-adapter dispatch p50 **0.050 ms**, p95 **0.085 ms** (100 calls); overlay window submission p50 **5.29 ms**, p95 **15.30 ms** (30 calls); native resident memory **99.9 MB** after the harness. The real sidecar returned a gated abstention, while main-loop wake lateness was **1.24 ms p95**. An idle process snapshot showed **0.0% CPU** and approximately **98 MB RSS**; this is a snapshot, not a long-duration energy measurement.
+Latest installed release harness after moving Python dependencies into Application Support:
 
-The next installed revision measured dispatch **0.054 / 0.120 ms p50/p95**, overlay submission **6.37 / 16.06 ms**, and native RSS **103.4 MB**, but its sidecar returned unavailable. Both runs lacked the rebuilt app’s Microphone and Accessibility permissions. Neither verifies a real hotkey callback, microphone capture, or WhatsApp control; the false hotkey results are recorded as blocked, not passing. Real-time paced synthetic speech independently produced an early app-opening clause before finalization.
+| Measurement | Observed result |
+|---|---:|
+| Parser-to-mock-adapter dispatch, 100 calls | p50 **0.066 ms**, p95 **0.176 ms** |
+| Overlay window submission, 30 calls | p50 **5.44 ms**, p95 **8.56 ms** |
+| Main-loop wake lateness during real Laya inference | p95 **1.24 ms** |
+| Native resident memory after harness | **98.7 MB** |
+| Later idle process snapshot with Settings open | **0.0% CPU**, approximately **111 MB RSS** |
+
+The sidecar returned a gated abstention. Microphone permission was granted, but Accessibility was not. This run therefore does **not** verify the global hotkey, live microphone transcription, or WhatsApp control; its false hotkey results are blocked acceptance gates. The idle CPU figure is a snapshot, not a long-duration energy measurement. Real-time paced synthetic speech independently produced a stable app-opening clause before finalization.
+
+An earlier installed run could not load the Python runtime from the Documents checkout. Installing a separate pinned runtime in Application Support resolved the observed failure without requesting broader file access.
 
 Targets: hotkey callback to visible overlay p50 <50 ms; stable direct clause to dispatch p50 <150 ms/p95 <300 ms; idle CPU <1%; native and speech components approximately <500 MB; sidecar approximately <2.5 GB. Third-party cold launches are excluded.
 
