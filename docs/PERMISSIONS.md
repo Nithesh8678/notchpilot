@@ -15,3 +15,5 @@ Ad-hoc development builds can require permissions again after a rebuild. macOS c
 Use the microphone indicator in macOS to confirm capture stops after Escape or a second hotkey press. Sessions also stop after 60 seconds. Close Settings to return to the menu-bar-only experience.
 
 If listening stops as soon as you release the shortcut, turn off **Hold to talk** in General. In toggle mode, releasing the key does not cancel; pressing it again does. Permission status should be checked after relaunch when a stale record has been reset.
+
+If nothing happens when you speak, check **General → Global shortcut** first. A recorded shortcut replaces Option + Space; pressing the default will do nothing until you restore it. The overlay must say **Listening** after one press. If it does but no text appears, check **System Settings → Sound → Input** and its live input level, especially when a Bluetooth headset is selected. A microphone permission marked Allowed only permits capture; it does not select a working audio device. On-device speech assets must also show Ready in Setup.
