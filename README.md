@@ -15,13 +15,18 @@ Requires Apple Silicon, macOS 26, Xcode 26+ (including accepted license), Python
 ./scripts/run.sh
 ```
 
-Setup creates a development `.venv`, installs a private copy of its pinned runtime in Application Support, downloads one optional Laya checkpoint there, and installs a local `.app` in `~/Applications/NotchPilot.app`. Approve **Microphone** and **Accessibility** in Setup, then prepare the local speech assets. Screen Recording is not needed. `./scripts/bootstrap.sh --skip-model` builds deterministic control without model downloads.
+Setup creates a development `.venv`, installs a separate pinned MLX runtime in Application Support, downloads one optional Laya checkpoint there, and installs a local `.app` in `~/Applications/NotchPilot.app`. Approve **Microphone** and **Accessibility** in Setup, then prepare the local speech assets. Screen Recording is not needed. `./scripts/bootstrap.sh --skip-model` builds deterministic control without model downloads.
 
 Press **Option + Space** to listen. Press it again, or **Escape**, to cancel and stop the microphone. The shortcut is configurable. Hold-to-talk is optional. Each session has a 60-second limit.
 
 Say:
 
-- “Open Safari.”
+- “Open Safari, then new tab.”
+- “Open Calculator.” or “Open Visual Studio Code.”
+- “Open Downloads.” or “Visit example.com.”
+- “Set volume to 30.” or “Mute.”
+- In an active app: “Scroll down”, “Click Back”, or “Search for apples”.
+- With an empty text field focused: “Type your exact words”.
 - “Open WhatsApp, go to Mummy, type hi and send.”
 - “Open WhatsApp, go to Mummy, type hi.” — leaves a draft.
 
@@ -29,13 +34,15 @@ Say:
 
 ## Supported scope
 
-Launch/focus WhatsApp, Safari, Notes, Finder, Calendar, Music, Calculator and System Settings. The first messaging adapter targets native WhatsApp for macOS with semantic Accessibility controls. This release uses an English command grammar with Apple on-device speech language assets. Dictated text is preserved, including case and punctuation supplied by recognition.
+Launch/focus installed apps by their exact names in the standard Applications folders, including Finder and Safari. Open website addresses and named folders or exact file paths. Control system volume/mute. In apps exposing suitable Accessibility controls, enter text into an empty focused field, fill Search, press an exact uniquely named button or menu item, scroll, use safe navigation/editing shortcuts, and minimize/zoom windows. Playback controls require an accessible Play/Pause/Next/Previous button in the active app.
 
-Unknown actions fail safely. General file manipulation, arbitrary clicking, deletion, financial actions, media/volume control, public posting, unrestricted plans and cloud AI are not implemented. UI automation may need updates when WhatsApp changes. A missing/incomplete Accessibility tree is an error, not a reason to guess coordinates.
+The verified messaging workflow is specific to native WhatsApp for macOS. Generic controls cannot send messages or commit sensitive operations. They refuse ambiguous controls, password fields, terminals, password managers and security settings. Generic clicks, scrolling and keyboard shortcuts report dispatch; only dedicated adapters can verify application-specific outcomes. Dry Run prevents messaging sends; it does **not** suppress ordinary app launches, typing, clicks or volume changes.
+
+This is not universal control of every app. English command grammar is required; arbitrary requests, deletion, purchases, financial activity, public posting and unrestricted plans are unsupported. Dictated text remains verbatim, including recognition punctuation; after “type”, only a trailing “and send” is interpreted as another action. Third-party UI changes can require adapter updates. Missing Accessibility semantics produce a useful error, never guessed coordinates. An action error leaves listening active so a new explicit “then open …” clause can recover; Escape always cancels.
 
 ## Local by design
 
-No audio retention, transcript uploads, telemetry or automatic crash uploads. Transcripts expire from memory. Aliases stay in local preferences. Diagnostics record action categories and timings, never recipients or messages. Laya uses one offline checkpoint through private pipes; deterministic commands do not wait for it. Its current fallback abstains because the small synthetic validation set did not meet the confidence gate. See [privacy](PRIVACY.md), [security](SECURITY.md), and [model evaluation](docs/MODELS.md).
+No audio retention, transcript uploads, telemetry or automatic crash uploads. Transcripts expire from memory. Aliases stay in local preferences. Diagnostics record action categories and timings, never recipients or messages. Laya uses one offline checkpoint through a native MLX inference port and private pipes; deterministic commands do not wait for it. Its current fallback abstains because the small synthetic validation set did not meet the confidence gate. See [privacy](PRIVACY.md), [security](SECURITY.md), and [model evaluation](docs/MODELS.md).
 
 ## Development
 
@@ -43,7 +50,7 @@ No audio retention, transcript uploads, telemetry or automatic crash uploads. Tr
 ./scripts/build.sh       # release .app; build/NotchPilot.app points to it
 ./scripts/test.sh        # native and Python tests; no real messages
 ./scripts/lint.sh        # formatting and repository checks
-./scripts/benchmark.sh   # sequential local CPU/MPS benchmarks and native harness
+./scripts/benchmark.sh   # sequential local MLX CPU/GPU benchmarks and native harness
 ./scripts/package.sh     # verified ad-hoc local ZIP; not notarized
 ```
 

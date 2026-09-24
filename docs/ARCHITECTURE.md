@@ -13,7 +13,9 @@ flowchart LR
   StateMachine --> ActionQueue
   ActionQueue --> SafetyPolicy
   SafetyPolicy --> MacExecutor
-  MacExecutor --> WhatsAppAdapter
+  MacExecutor --> DesktopAdapter
+  DesktopAdapter --> WhatsAppAdapter
+  DesktopAdapter --> AccessibilityClient
   WhatsAppAdapter --> AccessibilityClient
   TranscriptStream -. bounded optional choice .-> LayaSidecar
 ```
@@ -24,7 +26,7 @@ flowchart LR
 
 `AudioCapture` owns AVAudioEngine on a serial queue. A tap copies borrowed PCM buffers; conversion and metering happen on the capture queue. `SpeechPipeline` is an actor using SpeechAnalyzer and SpeechTranscriber with fast and volatile results. It preheats installed assets without opening the microphone. There is no remote or SFSpeech cloud fallback.
 
-`StreamingCommandParser` preserves dictation as an opaque string, except a terminal explicit connector-plus-send clause. It recognizes open/launch/focus, go to, type/say, send, cancel, and natural conjunctions. `CommandStateMachine` tracks the volatile transcript, recognizer-committed prefix, revisions, and cancellation. A repeated prefix can dispatch reversible clauses before utterance finalization. Send requires the recognizer's finalized prefix.
+`StreamingCommandParser` preserves dictation as an opaque string, except a terminal explicit connector-plus-send clause. It recognizes app/URL/file opening, contact selection, dictation, search, exact controls, scrolling, navigation keys, volume/media, window actions and natural conjunctions. Punctuation-only revisions do not change command identity. Incomplete app-name prefixes wait for more speech. `CommandStateMachine` tracks the volatile transcript, recognizer-committed prefix, revisions, and cancellation. A repeated prefix can dispatch reversible clauses before utterance finalization. Send requires the recognizer's finalized prefix.
 
 `ActionQueue` serializes actions while speech continues independently. Stable command identifiers prevent repeated dispatch. Revised drafts replace staged work; a changed already-executed recipient fails closed. A synchronous lock-protected token invalidates queued or obsolete work even while an AX request is waiting. Every side effect checks the token. AX waits are bounded; already delivered actions cannot be undone by cancellation.
 
@@ -34,4 +36,6 @@ flowchart LR
 
 `Diagnostics` writes a bounded privacy-safe local audit off the UI thread. `PerformanceMonitor` exposes process memory and measured timestamps; benchmark scripts separate native dispatch from third-party launch and recognition latency.
 
-The development Python environment remains project-local. Setup copies its pinned packages into a versioned private runtime in Application Support, preserving the selected model/backend in the local configuration. This avoids requiring Documents-folder access when the checkout lives there. Runtime versions are keyed by the dependency lock and Python version.
+The development Python environment remains project-local. Setup creates a separate pinned MLX-only runtime in Application Support and selects the measured multilingual/GPU configuration. The model port implements Laya sequence encoding, ModernBERT and its decision head with MLX; inference imports neither PyTorch nor Transformers. This avoids requiring Documents-folder access when the checkout lives there. Runtime versions are keyed by the dependency lock and Python version.
+
+`ApplicationCatalog` scans application metadata on an actor, including symlinked Safari and Finder. `DesktopAdapter` uses exact bounded Accessibility queries and verifies text values, focus and supported postconditions. Unknown-app click/shortcut acknowledgement is reported as dispatch rather than inferred success. Recoverable action errors do not close the microphone; speech-system failures do. Permission repair resets only the app’s stale Accessibility entry, then leaves approval to the user.
