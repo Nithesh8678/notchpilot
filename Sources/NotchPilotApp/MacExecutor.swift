@@ -58,20 +58,20 @@ actor ApplicationCatalog {
       "vscode": "visual studio code", "chrome": "google chrome", "app store": "app store",
     ]
     let normalized = TextNormalization.identity(requested)
-    let key = aliases[normalized] ?? normalized
+    let key = TextNormalization.appIdentity(aliases[normalized] ?? normalized)
     let matches = applications().filter {
       [
-        TextNormalization.identity($0.name),
-        TextNormalization.identity($0.url.deletingPathExtension().lastPathComponent),
-        TextNormalization.identity($0.identifier),
+        TextNormalization.appIdentity($0.name),
+        TextNormalization.appIdentity($0.url.deletingPathExtension().lastPathComponent),
+        TextNormalization.appIdentity($0.identifier),
       ].contains(key)
     }
     guard matches.count == 1 else {
       if matches.isEmpty {
         if !key.isEmpty
           && applications().contains(where: {
-            TextNormalization.identity($0.name).hasPrefix(key)
-              || TextNormalization.identity($0.url.deletingPathExtension().lastPathComponent)
+            TextNormalization.appIdentity($0.name).hasPrefix(key)
+              || TextNormalization.appIdentity($0.url.deletingPathExtension().lastPathComponent)
                 .hasPrefix(key)
           })
         {

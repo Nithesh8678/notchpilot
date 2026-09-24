@@ -1,3 +1,4 @@
+import AVFoundation
 import AppKit
 import ApplicationServices
 import Carbon
@@ -17,6 +18,9 @@ import NotchPilotCore
   }
   static func run(controller: AppController, output: URL) async {
     var report: [String: Any] = [:]
+    let previousHoldMode = controller.settings.holdToTalk
+    controller.settings.holdToTalk = false
+    defer { controller.settings.holdToTalk = previousHoldMode }
     controller.settings.dryRun = true
     controller.permissions.refresh()
     report["microphone_granted"] = controller.permissions.microphone == .authorized
@@ -141,6 +145,59 @@ import NotchPilotCore
     try? JSONSerialization.data(withJSONObject: report, options: [.prettyPrinted, .sortedKeys])
       .write(to: output)
   }
+  /// Real on-device speech and the real queue/executor. The probe only permits
+  /// Calculator and TextEdit launches; fixture tests cannot send or type anything.
+  static func speechCommands(
+    file: URL, output: URL, controller: AppController, microphone: Bool = false
+  ) async {
+    let probe = SpeechCommandProbe()
+    let token = CancellationToken()
+    let queue = ActionQueue(adapter: probe, token: token, policy: SafetyPolicy(), event: { _ in })
+    let pipeline = SpeechPipeline()
+    let (stream, continuation) = AsyncStream<SpeechUpdate>.makeStream()
+    let consumer = Task {
+      var machine = CommandStateMachine()
+      for await update in stream {
+        await probe.setVolatile(!update.isFinal)
+        controller.overlay.model.transcript = update.text
+        controller.overlay.show(.listening, action: "Synthetic speech → real application launch")
+        await queue.submit(
+          machine.ingest(
+            text: update.text, committed: update.committed,
+            now: ProcessInfo.processInfo.systemUptime))
+      }
+    }
+    var failure = false
+    do {
+      if microphone {
+        guard controller.permissions.microphone == .authorized else {
+          throw PilotError.unavailable("Approve microphone access before the acoustic smoke test.")
+        }
+        try await pipeline.start(
+          language: "en-US", update: { continuation.yield($0) }, level: { _ in },
+          failure: { _ in continuation.finish() })
+        let playback = SyntheticPlayback()
+        let duration = try await playback.play(file)
+        await pause(duration + 4)
+        await playback.stop()
+        await pipeline.cancel()
+      } else {
+        try await pipeline.transcribeFixture(file, language: "en-US") { continuation.yield($0) }
+      }
+    } catch { failure = true }
+    continuation.finish()
+    await consumer.value
+    for _ in 0..<100 {
+      if await probe.count() >= 2 { break }
+      await pause(0.1)
+    }
+    await queue.cancel()
+    let report = await probe.report(speechFailed: failure)
+    try? JSONSerialization.data(withJSONObject: report, options: [.prettyPrinted, .sortedKeys])
+      .write(to: output)
+    controller.overlay.hide()
+    await pipeline.cancel()
+  }
   static func whatsappDryRun(output: URL) async {
     let adapter = WhatsAppAdapter(aliases: [:])
     let token = CancellationToken()
@@ -157,6 +214,50 @@ import NotchPilotCore
     }
     try? JSONSerialization.data(withJSONObject: stages, options: [.prettyPrinted, .sortedKeys])
       .write(to: output)
+  }
+}
+private actor SyntheticPlayback {
+  private var player: AVAudioPlayer?
+  func play(_ url: URL) throws -> Double {
+    let player = try AVAudioPlayer(contentsOf: url)
+    guard player.duration > 0 else { throw PilotError.unavailable("The fixture has no audio.") }
+    player.prepareToPlay()
+    guard player.play() else { throw PilotError.unavailable("Audio playback is unavailable.") }
+    self.player = player
+    return player.duration
+  }
+  func stop() {
+    player?.stop()
+    player = nil
+  }
+}
+actor SpeechCommandProbe: ApplicationAdapter {
+  private let desktop = DesktopAdapter(aliases: [:])
+  private var volatile = false
+  private var launches: [String] = []
+  private var early = false
+  func setVolatile(_ value: Bool) { volatile = value }
+  func count() -> Int { launches.count }
+  func reset() async { await desktop.reset() }
+  func execute(_ command: Command, token: CancellationToken, revision: Int, policy: SafetyPolicy)
+    async throws -> String
+  {
+    let target = TextNormalization.appIdentity(command.value)
+    guard command.kind == .openApp, ["calculator", "textedit"].contains(target) else {
+      throw PilotError.incompleteCommand
+    }
+    let beforeFinal = volatile
+    let result = try await desktop.execute(
+      command, token: token, revision: revision, policy: policy)
+    launches.append(target)
+    early = early || beforeFinal
+    return result
+  }
+  func report(speechFailed: Bool) -> [String: Any] {
+    [
+      "speech_failed": speechFailed, "launched_apps": launches, "real_launch_before_final": early,
+      "duplicate_launches": launches.count != Set(launches).count,
+    ]
   }
 }
 actor DispatchTimingAdapter: ApplicationAdapter {

@@ -78,6 +78,20 @@ import SwiftUI
     if let i = args.firstIndex(of: "--desktop-smoke"), args.count > i + 1 {
       Task { await AcceptanceHarness.desktopSmoke(output: URL(fileURLWithPath: args[i + 1])) }
     }
+    if let i = args.firstIndex(of: "--speech-command-smoke"), args.count > i + 2 {
+      Task {
+        await AcceptanceHarness.speechCommands(
+          file: URL(fileURLWithPath: args[i + 1]), output: URL(fileURLWithPath: args[i + 2]),
+          controller: self)
+      }
+    }
+    if let i = args.firstIndex(of: "--microphone-command-smoke"), args.count > i + 2 {
+      Task {
+        await AcceptanceHarness.speechCommands(
+          file: URL(fileURLWithPath: args[i + 1]), output: URL(fileURLWithPath: args[i + 2]),
+          controller: self, microphone: true)
+      }
+    }
     if let i = args.firstIndex(of: "--whatsapp-dry-run"), args.count > i + 1 {
       Task { await AcceptanceHarness.whatsappDryRun(output: URL(fileURLWithPath: args[i + 1])) }
     }

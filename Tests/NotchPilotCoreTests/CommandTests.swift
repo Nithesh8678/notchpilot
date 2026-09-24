@@ -3,6 +3,13 @@ import Testing
 
 @testable import NotchPilotCore
 
+@Test func capitalizationAndAppSpacingPreserveIdentity() {
+  let parser = StreamingCommandParser()
+  #expect(parser.parse("open text edit") == parser.parse("Open TextEdit."))
+  #expect(parser.parse("go to mummy") == parser.parse("Go to Mummy."))
+  #expect(parser.parse("type Hi") != parser.parse("type hi"))
+}
+
 @Test func continuousPhrasePreservesMessage() {
   let commands = StreamingCommandParser().parse(
     "Open WhatsApp, go to Mummy, type Hi there! and send")

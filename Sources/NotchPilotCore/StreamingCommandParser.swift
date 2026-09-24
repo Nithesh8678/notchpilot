@@ -18,11 +18,19 @@ public struct Command: Equatable, Sendable {
   // Transcript offsets are metadata, not action identity. Punctuation-only revisions
   // must not cancel or repeat an action that already ran.
   public static func == (lhs: Command, rhs: Command) -> Bool {
-    lhs.id == rhs.id && lhs.kind == rhs.kind && lhs.value == rhs.value
+    guard lhs.id == rhs.id, lhs.kind == rhs.kind else { return false }
+    if lhs.kind == .typeText { return lhs.value == rhs.value }
+    if lhs.kind == .openApp {
+      return TextNormalization.appIdentity(lhs.value) == TextNormalization.appIdentity(rhs.value)
+    }
+    return TextNormalization.identity(lhs.value) == TextNormalization.identity(rhs.value)
   }
   public var auditName: String { kind.rawValue }
 }
 public enum TextNormalization {
+  public static func appIdentity(_ text: String) -> String {
+    identity(text).replacingOccurrences(of: " ", with: "")
+  }
   public static func identity(_ text: String) -> String {
     text.replacingOccurrences(
       of: "[\\u200E\\u200F\\u202A-\\u202E\\u2066-\\u2069]", with: "", options: .regularExpression
