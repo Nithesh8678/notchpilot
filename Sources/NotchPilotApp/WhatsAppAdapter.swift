@@ -35,6 +35,7 @@ actor WhatsAppAdapter: ApplicationAdapter {
       let client = try self.client ?? AccessibilityClient(pid: targetPID)
       self.client = client
       try await client.wait(token: token) { !client.windows().isEmpty }
+      try await executor.focus(targetPID, token: token)
       let target = ContactResolver.resolve(command.value, aliases: aliases)
       // Use the application's native File > Search menu command. Merely pressing
       // the Catalyst search label does not reliably focus the editable control.
@@ -106,6 +107,7 @@ actor WhatsAppAdapter: ApplicationAdapter {
       guard let client, let recipient, headerMatches(recipient, client: client) else {
         throw PilotError.unsafe("Choose an exact WhatsApp conversation first.")
       }
+      if let targetPID { try await executor.focus(targetPID, token: token) }
       let composer = try client.unique(identifier: "ChatBar_ComposerTextView")
       try client.setText(
         composer, text: command.value, previous: draft, preferKeyboard: true, token: token,

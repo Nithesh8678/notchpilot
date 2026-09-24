@@ -97,7 +97,27 @@ actor MacExecutor {
     guard !application.isTerminated else {
       throw PilotError.unavailable("The application exited during launch.")
     }
+    try await focus(application.processIdentifier, token: token)
     return application.processIdentifier
+  }
+  func focus(_ pid: pid_t, token: CancellationToken) async throws {
+    try token.check()
+    let current = await MainActor.run { NSWorkspace.shared.frontmostApplication?.processIdentifier }
+    if current == pid { return }
+    guard let application = NSRunningApplication(processIdentifier: pid),
+      application.activate(options: [])
+    else { throw PilotError.unavailable("The application could not be brought forward.") }
+    // Activation is asynchronous. Check the actual frontmost app before AX typing.
+    for _ in 0..<25 {
+      try token.check()
+      if await MainActor.run(body: {
+        NSWorkspace.shared.frontmostApplication?.processIdentifier == pid
+      }) {
+        return
+      }
+      try await Task.sleep(nanoseconds: 40_000_000)
+    }
+    throw PilotError.unavailable("The application did not become frontmost. Try opening it again.")
   }
   func openURL(_ text: String, token: CancellationToken) async throws {
     guard let url = SafeDesktopAction.webURL(text) else {
