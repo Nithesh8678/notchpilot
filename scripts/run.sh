@@ -1,4 +1,4 @@
 #!/bin/bash
 source "$(dirname "$0")/common.sh"
-if [ ! -d build/NotchPilot.app ]; then ./scripts/build.sh; fi
-open "$NP_ROOT/build/NotchPilot.app" --args "$@"
+if [ ! -d "$HOME/Applications/NotchPilot.app" ]; then ./scripts/install.sh; fi
+open "$HOME/Applications/NotchPilot.app" --args "$@"

@@ -9,7 +9,7 @@ mkdir -p "$NP_APP/Contents/MacOS" "$NP_APP/Contents/Resources/sidecar/vendor/lay
 find "$NP_APP/Contents/Resources/sidecar" -type d -name __pycache__ -prune -exec rm -rf {} +
 cp "$NP_BIN/NotchPilot" "$NP_APP/Contents/MacOS/NotchPilot"
 cp Resources/Info.plist "$NP_APP/Contents/Info.plist"
-cp sidecar/service.py sidecar/protocol.py "$NP_APP/Contents/Resources/sidecar/"
+cp sidecar/service.py sidecar/protocol.py sidecar/mlx_laya.py "$NP_APP/Contents/Resources/sidecar/"
 cp sidecar/vendor/laya/*.py "$NP_APP/Contents/Resources/sidecar/vendor/laya/"
 cp LICENSE THIRD_PARTY_NOTICES.md "$NP_APP/Contents/Resources/"
 # Finder metadata from sync providers is not code and invalidates ad-hoc signing.

@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 """One offline model, one inference at a time, inherited private stdio pipes only."""
-import contextlib
 import json
 import os
 from pathlib import Path
@@ -23,38 +22,28 @@ class DecisionService:
     def load(self):
         if self.agent is not None:
             return
-        import torch
-        torch.set_num_threads(max(1, min(4, int(self.config.get('threads', 2)))))
-        try:
-            torch.set_num_interop_threads(1)
-        except RuntimeError:
-            pass
-        from laya import Agent
+        from mlx_laya import MLXLaya
         model = Path(self.config['model']).resolve()
         if not model.is_dir():
             raise ValueError('model_unavailable')
-        with contextlib.redirect_stdout(sys.stderr):
-            self.agent = Agent(str(model), device=self.config.get('backend', 'cpu'))
+        self.agent = MLXLaya(model, device=self.config.get('backend', 'gpu'))
 
     def respond(self, request):
         request = validate(request)
         if request['op'] == 'unload':
-            if self.agent is not None:
-                self.agent.__exit__(None, None, None)
             self.agent = None
+            import mlx.core as mx
+            mx.clear_cache()
             return {'id': request['id'], 'status': 'unloaded'}
         if request['op'] == 'prepare':
             self.load()
-            return {'id': request['id'], 'status': 'ready', 'summary': self.config.get('model_name', 'Laya') + ' / ' + self.config.get('backend', 'cpu') + (' / validated gate' if self.config.get('calibration', {}).get('validated') else ' / conservative abstention')}
+            return {'id': request['id'], 'status': 'ready', 'summary': self.config.get('model_name', 'Laya') + ' / MLX ' + self.config.get('backend', 'gpu') + (' / validated gate' if self.config.get('calibration', {}).get('validated') else ' / conservative abstention')}
         if request['op'] == 'status':
             return {'id': request['id'], 'status': 'ready' if self.agent else 'cold'}
         self.load()
         begin = time.perf_counter()
-        with contextlib.redirect_stdout(sys.stderr):
-            result = self.agent.predict({'command': request['state']}, {'intent': {
-                'type': 'choice', 'instructions': 'Select the explicitly requested supported application action. Otherwise choose unsupported.',
-                'criteria': request['choices']}})
-        answer = result['answers']['intent']
+        answer = self.agent.predict({'command': request['state']},
+            'Select the explicitly requested supported application action. Otherwise choose unsupported.', request['choices'])
         probabilities = sorted(answer['probabilities'].values(), reverse=True)
         label = answer['choice']
         confidence = float(answer['confidence'])

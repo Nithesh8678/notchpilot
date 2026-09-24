@@ -3,8 +3,9 @@ source "$(dirname "$0")/common.sh"
 if [ ! -x .venv/bin/python ]; then echo 'Run ./scripts/bootstrap.sh first.'; exit 1; fi
 .venv/bin/python sidecar/download_models.py --all
 .venv/bin/python sidecar/benchmark.py
-./scripts/build.sh
+if [ ! -e "$HOME/Applications/NotchPilot.app" ]; then ./scripts/install.sh; fi
 mkdir -p .local
 printf 'Approve the app permissions before the native benchmark. No real messages are sent.\n'
-open "$NP_ROOT/build/NotchPilot.app" --args --acceptance-report "$NP_ROOT/.local/native.json"
-printf 'Laya results: benchmark-results/laya.json\nNative results: .local/native.json\n'
+pkill -x NotchPilot || true
+open -n "$HOME/Applications/NotchPilot.app" --args --acceptance-report "${TMPDIR:-/tmp}/notchpilot-native-benchmark.json"
+printf 'Laya results: benchmark-results/mlx.json\nNative results: $TMPDIR/notchpilot-native-benchmark.json\n'

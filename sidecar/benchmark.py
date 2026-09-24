@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Sequential, isolated CPU/MPS benchmark using only committed synthetic commands."""
+"""Sequential MLX CPU/GPU benchmark and synthetic reference parity check."""
 import argparse
 import json
 import os
@@ -15,80 +15,55 @@ CACHE = Path(os.environ.get('NOTCHPILOT_MODEL_DIR', Path.home() / 'Library/Appli
 CHOICES = {'open_whatsapp': 'Launch or focus WhatsApp', 'open_safari': 'Launch or focus Safari web browser', 'open_notes': 'Launch or focus Apple Notes', 'open_finder': 'Launch or focus Finder', 'unsupported': 'Any other action or no explicit request to open an application'}
 INSTRUCTIONS = 'Select the explicitly requested supported application action. Otherwise choose unsupported.'
 
-def quantile(values, percentile):
-    return sorted(values)[min(len(values)-1, int((len(values)-1)*percentile))]
-
-def worker(model, device, threads):
-    os.environ.update(USE_TF='0', HF_HUB_OFFLINE='1', TRANSFORMERS_OFFLINE='1', TOKENIZERS_PARALLELISM='false', HF_HUB_DISABLE_TELEMETRY='1')
-    sys.path.insert(0, str(ROOT / 'vendor'))
-    start = time.perf_counter()
-    import torch
-    torch.set_num_threads(threads)
-    torch.set_num_interop_threads(1)
-    from laya import Agent
-    agent = Agent(str(CACHE / model), device=device)
-    load_ms = (time.perf_counter() - start)*1000
+def worker(model, backend):
+    begin = time.perf_counter()
+    from mlx_laya import MLXLaya
+    import mlx.core as mx
+    agent = MLXLaya(CACHE / model, device=backend)
+    load_ms = (time.perf_counter() - begin) * 1000
     data = json.loads((ROOT / 'fixtures/decisions.json').read_text())
-    times, records = [], []
+    reference = json.loads((ROOT / 'fixtures/mlx_reference.json').read_text()) if model == 'multilingual' else None
+    times, correct, same, delta = [], 0, 0, 0.
     cpu = time.process_time()
-    for item in data:
-        before = time.perf_counter()
-        answer = agent.predict({'command': item['text']}, {'intent': {'type': 'choice', 'instructions': INSTRUCTIONS, 'criteria': CHOICES}})['answers']['intent']
-        elapsed = (time.perf_counter() - before)*1000
-        times.append(elapsed)
-        probs = sorted(answer['probabilities'].values(), reverse=True)
-        records.append({'split': item['split'], 'correct': answer['choice'] == item['label'], 'expected': item['label'], 'label': answer['choice'], 'confidence': answer['confidence'], 'margin': probs[0] - probs[1]})
-    rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / (1024*1024 if sys.platform == 'darwin' else 1024)
-    result = {'model': model, 'backend': device, 'threads': threads, 'load_ms': load_ms,
-              'first_inference_ms': times[0], 'warm_p50_ms': statistics.median(times[1:]),
-              'warm_p95_ms': quantile(times[1:], .95), 'peak_rss_mb': rss,
-              'cpu_seconds': time.process_time()-cpu, 'accuracy': sum(r['correct'] for r in records)/len(records),
-              'sample_count': len(records), 'records': records}
+    for index, item in enumerate(data):
+        state = {'command': item['text']}
+        if reference:
+            ids, markers = agent.sequence(state, INSTRUCTIONS, CHOICES)
+            assert ids == reference[index]['ids'] and markers == reference[index]['markers'], 'Token sequence mismatch'
+        start = time.perf_counter()
+        answer = agent.predict(state, INSTRUCTIONS, CHOICES)
+        times.append((time.perf_counter() - start) * 1000)
+        correct += answer['choice'] == item['label']
+        if reference:
+            same += answer['choice'] == reference[index]['answer']['choice']
+            delta = max(delta, max(abs(answer['probabilities'][k] - reference[index]['answer']['probabilities'][k]) for k in CHOICES))
+    result = {'runtime': 'mlx', 'model': model, 'backend': backend, 'precision': 'float32; MLX_ENABLE_TF32=0', 'load_ms': load_ms, 'first_ms': times[0], 'warm_p50_ms': statistics.median(times[1:]), 'warm_p95_ms': sorted(times[1:])[int(.95 * (len(times)-2))], 'sample_count':len(data), 'accuracy':correct/len(data), 'peak_rss_mb':resource.getrusage(resource.RUSAGE_SELF).ru_maxrss/1048576, 'metal_peak_mb':mx.get_peak_memory()/1048576, 'cpu_seconds':time.process_time()-cpu, 'torch_imported':'torch' in sys.modules}
+    if reference:
+        result.update(reference_choices_matching=same, maximum_probability_difference=delta, parity_passed=same == len(data) and delta < .0002)
     print(json.dumps(result), flush=True)
+    if reference and not result['parity_passed']:
+        raise SystemExit(1)
 
 def main():
-    parser = argparse.ArgumentParser()
+    parser=argparse.ArgumentParser()
     parser.add_argument('--worker', action='store_true')
-    parser.add_argument('--model', default='english')
-    parser.add_argument('--backend', default='cpu')
-    parser.add_argument('--threads', type=int, default=2)
-    args = parser.parse_args()
-    if args.worker:
-        worker(args.model, args.backend, args.threads)
-        return
-    output = ROOT.parent / 'benchmark-results'; output.mkdir(exist_ok=True)
-    results = []
-    for model in ['english', 'multilingual']:
-        for backend, threads in [('cpu', 1), ('cpu', 2), ('cpu', 4), ('mps', 2)]:
-            try:
-                run = subprocess.run([sys.executable, __file__, '--worker', '--model', model, '--backend', backend, '--threads', str(threads)], capture_output=True, text=True, timeout=240)
-                if run.returncode:
-                    result = {'model': model, 'backend': backend, 'threads': threads, 'error': run.stderr[-3000:]}
-                else:
-                    result = json.loads(run.stdout.splitlines()[-1])
-            except subprocess.TimeoutExpired:
-                result = {'model': model, 'backend': backend, 'threads': threads, 'error': 'timeout after 240 seconds'}
+    parser.add_argument('--model', default='multilingual', choices=['multilingual', 'english'])
+    parser.add_argument('--backend', default='gpu', choices=['cpu', 'gpu'])
+    args=parser.parse_args()
+    if args.worker: return worker(args.model,args.backend)
+    output=ROOT.parent/'benchmark-results';output.mkdir(exist_ok=True)
+    results=[]
+    for model in ['multilingual','english']:
+        for backend in ['cpu','gpu']:
+            run=subprocess.run([sys.executable,__file__,'--worker','--model',model,'--backend',backend],text=True,capture_output=True,timeout=240)
+            if run.stdout.strip():
+                try: result=json.loads(run.stdout.splitlines()[-1])
+                except ValueError: result={'model':model,'backend':backend,'error':'invalid benchmark output'}
+            else: result={'model':model,'backend':backend,'error':'worker failed'}
+            result['passed']=run.returncode == 0
             results.append(result)
-            (output / 'laya.json').write_text(json.dumps(results, indent=2)+'\n')
-            print(json.dumps({k:v for k,v in result.items() if k != 'records'}), flush=True)
-    valid = [r for r in results if 'accuracy' in r]
-    if not valid:
-        return
-    # Accuracy first, then measured p95, within the memory budget if available.
-    fitting = [r for r in valid if r['peak_rss_mb'] < 2560] or valid
-    best_accuracy = max(r['accuracy'] for r in fitting)
-    selected = min((r for r in fitting if r['accuracy'] >= best_accuracy), key=lambda r:r['warm_p95_ms'])
-    # Calibrate on a separate split, then audit the held-out split. Conservative abstention.
-    calibration = {'validated': False, 'threshold': 1.01, 'margin': 1.01}
-    for threshold in [.7, .8, .9, .95, .98]:
-        accepted = [r for r in selected['records'] if r['split']=='calibration' and r['confidence']>=threshold and r['margin']>=.25 and r['label']!='unsupported']
-        test = [r for r in selected['records'] if r['split']=='test' and r['confidence']>=threshold and r['margin']>=.25 and r['label']!='unsupported']
-        if len(accepted)>=10 and len(test)>=10 and all(r['correct'] for r in accepted+test):
-            calibration = {'validated': True, 'threshold': threshold, 'margin': .25, 'scope': 'synthetic app-launch smoke dataset only', 'test_accepted': len(test)}
-            break
-    config = {'python': sys.executable, 'model': str(CACHE / selected['model']), 'model_name': selected['model'], 'backend': selected['backend'], 'threads': selected['threads'], 'calibration': calibration}
-    destination = CACHE.parent / 'runtime.json'
-    destination.write_text(json.dumps(config, indent=2)+'\n'); destination.chmod(0o600)
-    print('Selected: '+ selected['model']+' / '+selected['backend']+' / '+str(selected['threads'])+' threads; gate='+str(calibration['validated']), flush=True)
+            print(json.dumps(result),flush=True)
+            (output/'mlx.json').write_text(json.dumps(results,indent=2)+'\n')
+    if not all(r['passed'] for r in results): raise SystemExit(1)
 
-if __name__ == '__main__': main()
+if __name__=='__main__': main()

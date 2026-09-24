@@ -31,3 +31,28 @@ class ProtocolTests(unittest.TestCase):
     def test_rejects_oversized_state(self):
         with self.assertRaises(ValueError):
             validate({'id':'x','op':'choose','state':'x'*1025,'choices':{'open_safari':'Safari','unsupported':'Other'}})
+
+class ServiceIsolationTests(unittest.TestCase):
+    def test_status_and_invalid_request_need_no_model(self):
+        import json
+        import subprocess
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as temporary:
+            config = Path(temporary) / 'runtime.json'
+            config.write_text('{}')
+            service = Path(__file__).resolve().parents[1] / 'service.py'
+            run = subprocess.run([sys.executable, str(service), str(config)],
+                input='{"id":"a","op":"status"}\n{"id":"b","op":"execute_shell"}\n',
+                text=True, capture_output=True, timeout=5)
+            self.assertEqual(run.returncode, 0)
+            replies = [json.loads(line) for line in run.stdout.splitlines()]
+            self.assertEqual(replies[0], {'id': 'a', 'status': 'cold'})
+            self.assertEqual(replies[1], {'id': 'b', 'status': 'unavailable'})
+
+    def test_runtime_has_no_torch_dependency(self):
+        from pathlib import Path
+        root = Path(__file__).resolve().parents[1]
+        requirements = (root / 'requirements.lock').read_text().splitlines()
+        self.assertFalse(any(line.startswith(('torch==', 'transformers==')) for line in requirements))
+        self.assertIn('mlx==0.32.2', requirements)
