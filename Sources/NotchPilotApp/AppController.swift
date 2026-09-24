@@ -159,6 +159,7 @@ import SwiftUI
     retention?.cancel()
     sessionTimeout?.cancel()
     confirmationNeeded = false
+    notice = ""
     session = UUID()
     listening = true
     hotkeys.enableEscape(true)
@@ -247,6 +248,10 @@ import SwiftUI
       overlay.show(.error, action: notice)
       overlay.model.next = "Listening continues · Esc cancels · restart to retry"
       permissions.refresh()
+      return
+    }
+    if event.status == "waiting" {
+      overlay.show(.understanding, action: "Waiting for the complete app name · still listening")
       return
     }
     if event.status == "confirmation" {

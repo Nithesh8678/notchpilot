@@ -289,3 +289,20 @@ func cancellationAtEveryActionBoundary(_ heldKind: CommandKind) async throws {
   try await Task.sleep(for: .milliseconds(30))
   #expect(await adapter.kinds == [.openApp, .contact, .openApp])
 }
+
+@Test func punctuationDoesNotChangeExecutedActionIdentity() async throws {
+  let adapter = MockAdapter()
+  let queue = ActionQueue(
+    adapter: adapter, token: CancellationToken(), policy: SafetyPolicy(), event: { _ in })
+  var machine = CommandStateMachine()
+  let first = "Open Safari"
+  await queue.submit(machine.ingest(text: first, committed: first, now: 1))
+  try await Task.sleep(for: .milliseconds(20))
+  let punctuated = "Open Safari."
+  await queue.submit(machine.ingest(text: punctuated, committed: punctuated, now: 2))
+  try await Task.sleep(for: .milliseconds(20))
+  let next = "Open Safari. Open Calculator."
+  await queue.submit(machine.ingest(text: next, committed: next, now: 3))
+  try await Task.sleep(for: .milliseconds(20))
+  #expect(await adapter.commands.map(\.value) == ["Safari", "Calculator"])
+}

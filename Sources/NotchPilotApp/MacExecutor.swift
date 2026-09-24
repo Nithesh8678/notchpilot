@@ -58,6 +58,15 @@ actor ApplicationCatalog {
     }
     guard matches.count == 1 else {
       if matches.isEmpty {
+        if !key.isEmpty
+          && applications().contains(where: {
+            TextNormalization.identity($0.name).hasPrefix(key)
+              || TextNormalization.identity($0.url.deletingPathExtension().lastPathComponent)
+                .hasPrefix(key)
+          })
+        {
+          throw PilotError.incompleteCommand
+        }
         throw PilotError.unavailable(
           "No installed app matches that name. Say its exact Applications name.")
       }

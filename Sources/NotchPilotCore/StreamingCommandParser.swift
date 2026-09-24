@@ -15,6 +15,11 @@ public struct Command: Equatable, Sendable {
     self.value = value
     self.endOffset = endOffset
   }
+  // Transcript offsets are metadata, not action identity. Punctuation-only revisions
+  // must not cancel or repeat an action that already ran.
+  public static func == (lhs: Command, rhs: Command) -> Bool {
+    lhs.id == rhs.id && lhs.kind == rhs.kind && lhs.value == rhs.value
+  }
   public var auditName: String { kind.rawValue }
 }
 public enum TextNormalization {
@@ -33,7 +38,7 @@ public struct StreamingCommandParser: Sendable {
   public func parse(_ text: String) -> [Command] {
     let source = text as NSString
     let pattern =
-      #"(?i)(?:^\s*(?:(?:please|can you|could you|would you)\s+)?|[,;]\s*(?:(?:and|then|after that)\s+)?|\s+(?:and|then|after that)\s+)(open folder|open file|open|launch|focus|switch to|bring up|visit|browse to|go to|search for|search|click|choose|select all|select|press|scroll|set volume to|volume up|volume down|increase volume|decrease volume|mute|unmute|play|pause|resume|next track|previous track|minimize|maximize|new tab|new window|back|forward|reload|refresh|copy|paste|undo|redo|type|say|send|cancel)\b\s*"#
+      #"(?i)(?:^\s*(?:(?:please|can you|could you|would you)\s+)?|(?:[,;]\s*|[.!?]\s+)(?:(?:and|then|after that)\s+)?|\s+(?:and|then|after that)\s+)(open folder|open file|open|launch|focus|switch to|bring up|visit|browse to|go to|search for|search|click|choose|select all|select|press|scroll|set volume to|volume up|volume down|increase volume|decrease volume|mute|unmute|play|pause|resume|next track|previous track|minimize|maximize|new tab|new window|back|forward|reload|refresh|copy|paste|undo|redo|type|say|send|cancel)\b\s*"#
     guard let regex = try? NSRegularExpression(pattern: pattern) else { return [] }
     let matches = regex.matches(in: text, range: NSRange(location: 0, length: source.length))
     var commands: [Command] = []

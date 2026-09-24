@@ -195,6 +195,9 @@ public actor ActionQueue {
         // An in-flight command may have been included in a replacement batch.
         pending.removeAll { $0 == command }
         event(.init(kind: command.kind, status: result, milliseconds: milliseconds))
+      } catch PilotError.incompleteCommand {
+        pending = []
+        event(.init(kind: command.kind, status: "waiting", milliseconds: 0))
       } catch PilotError.cancelled {
         // Obsolete work is discarded; the revised batch can proceed.
         if (try? token.check()) == nil {
