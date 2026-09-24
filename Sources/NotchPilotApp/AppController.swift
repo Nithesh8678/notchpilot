@@ -75,6 +75,9 @@ import SwiftUI
           controller: self)
       }
     }
+    if let i = args.firstIndex(of: "--desktop-smoke"), args.count > i + 1 {
+      Task { await AcceptanceHarness.desktopSmoke(output: URL(fileURLWithPath: args[i + 1])) }
+    }
     if let i = args.firstIndex(of: "--whatsapp-dry-run"), args.count > i + 1 {
       Task { await AcceptanceHarness.whatsappDryRun(output: URL(fileURLWithPath: args[i + 1])) }
     }
@@ -164,7 +167,7 @@ import SwiftUI
     let token = CancellationToken()
     self.token = token
     let current = session
-    let selectedAdapter = adapter ?? WhatsAppAdapter(aliases: settings.aliases)
+    let selectedAdapter = adapter ?? DesktopAdapter(aliases: settings.aliases)
     let queue = ActionQueue(
       adapter: selectedAdapter, token: token,
       policy: SafetyPolicy(
@@ -240,7 +243,10 @@ import SwiftUI
   }
   private func receive(_ event: ExecutionEvent) {
     if event.status.hasPrefix("error: ") {
-      fail(String(event.status.dropFirst(7)))
+      notice = String(event.status.dropFirst(7))
+      overlay.show(.error, action: notice)
+      overlay.model.next = "Listening continues · Esc cancels · restart to retry"
+      permissions.refresh()
       return
     }
     if event.status == "confirmation" {
@@ -254,6 +260,8 @@ import SwiftUI
         .typeText: "Entering your words", .send: "Verifying before send",
       ]
       overlay.show(.executing, action: titles[event.kind] ?? "Working")
+    } else if event.status == "dispatched" {
+      overlay.show(.listening, action: "Action dispatched · still listening")
     } else if event.status == "dryRun" {
       overlay.show(.success, action: "Dry Run complete · message was not sent")
     } else {
@@ -294,7 +302,8 @@ import SwiftUI
     overlay.show(.error, action: message)
     notice = message
     permissions.refresh()
-    if !permissions.accessibility || permissions.microphone != .authorized { showSettings() }
+    // An action error must not repeatedly steal focus or interrupt dictation.
+    // Permission controls remain available from the menu bar.
   }
   private func scheduleClear() {
     let current = session
@@ -343,6 +352,7 @@ import SwiftUI
         "Open WhatsApp", "Open WhatsApp, go to Mummy", "Open WhatsApp, go to Mummy, type hi",
         "Open WhatsApp, go to Mummy, type hi and send",
       ] {
+        overlay.model.transcript = text
         continuation?.yield(SpeechUpdate(text: text, committed: text, isFinal: true))
         try? await Task.sleep(nanoseconds: 800_000_000)
       }

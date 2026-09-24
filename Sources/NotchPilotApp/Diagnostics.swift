@@ -18,12 +18,13 @@ actor Diagnostics {
     let result =
       event.status.hasPrefix("error")
       ? "failure"
-      : ["success", "executing", "dryRun", "confirmation"].contains(event.status)
+      : ["success", "executing", "dryRun", "confirmation", "dispatched"].contains(event.status)
         ? event.status : "cancelled"
     entries.append(
       Entry(
         timestamp: Date(), action: event.kind.rawValue,
-        application: event.kind == .openApp ? "application" : "WhatsApp", result: result,
+        application: [.contact, .send].contains(event.kind)
+          ? "messaging adapter" : "foreground application", result: result,
         milliseconds: event.milliseconds))
     entries = Array(entries.suffix(200))
     do {

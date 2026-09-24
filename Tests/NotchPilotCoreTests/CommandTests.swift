@@ -249,3 +249,43 @@ func cancellationAtEveryActionBoundary(_ heldKind: CommandKind) async throws {
   try await Task.sleep(for: .milliseconds(20))
   #expect(await adapter.commands.map(\.kind) == [.openApp, .contact, .typeText, .send])
 }
+
+@Test func broadDesktopClauses() {
+  let parser = StreamingCommandParser()
+  #expect(parser.parse("Could you open Spotify").first?.value == "Spotify")
+  #expect(
+    parser.parse("Open Safari, then new tab, then visit example.com").map(\.kind) == [
+      .openApp, .key, .openURL,
+    ])
+  #expect(
+    parser.parse("open folder Downloads and scroll down").map(\.kind) == [.openPath, .scroll])
+  #expect(parser.parse("set volume to 30 percent").first?.value == "30 percent")
+  #expect(parser.parse("mute").first?.kind == .volume)
+  #expect(parser.parse("click Play").first?.value == "Play")
+  #expect(parser.parse("search for cats").first?.value == "cats")
+  #expect(parser.parse("type please click Play and open Spotify").count == 1)
+}
+@Test func genericControlsCannotBypassSendSafety() {
+  for name in ["Send", "Send message", "Buy now", "Delete", "Allow", "OK", "Confirm purchase"] {
+    #expect(SafeDesktopAction.prohibitedControl(name))
+  }
+  #expect(!SafeDesktopAction.prohibitedControl("Play"))
+  #expect(SafeDesktopAction.webURL("example.com")?.scheme == "https")
+  #expect(SafeDesktopAction.webURL("javascript:alert(1)") == nil)
+  #expect(SafeDesktopAction.webURL("file:///etc/passwd") == nil)
+  #expect(SafeDesktopAction.webURL("https://user:secret@example.com") == nil)
+  #expect(SafeDesktopAction.scrollDirection("down")?.amount == -5)
+}
+@Test func failedActionCanRecoverAtNextExplicitAppClause() async throws {
+  let adapter = RejectingContactAdapter()
+  let queue = ActionQueue(
+    adapter: adapter, token: CancellationToken(), policy: SafetyPolicy(), event: { _ in })
+  var machine = CommandStateMachine()
+  let first = "Open WhatsApp, go to Synthetic Contact"
+  await queue.submit(machine.ingest(text: first, committed: first, now: 1))
+  try await Task.sleep(for: .milliseconds(30))
+  let next = first + ", then open Safari"
+  await queue.submit(machine.ingest(text: next, committed: next, now: 2))
+  try await Task.sleep(for: .milliseconds(30))
+  #expect(await adapter.kinds == [.openApp, .contact, .openApp])
+}

@@ -68,18 +68,31 @@ final class AccessibilityClient: @unchecked Sendable {
   func children(_ element: AXUIElement) -> [AXUIElement] {
     attribute(element, kAXChildrenAttribute) as? [AXUIElement] ?? []
   }
+  func focusedNode() -> AXNode? {
+    guard let element = attribute(app, kAXFocusedUIElementAttribute),
+      CFGetTypeID(element) == AXUIElementGetTypeID()
+    else { return nil }
+    return node(unsafeBitCast(element, to: AXUIElement.self))
+  }
   func windows() -> [AXUIElement] { attribute(app, kAXWindowsAttribute) as? [AXUIElement] ?? [] }
   func search(
     root: AXUIElement? = nil, includeChatList: Bool = false, includeMessages: Bool = false,
     matching: (AXNode) -> Bool
   ) -> [AXNode] {
     var queue: [(AXUIElement, Int)] = [(root ?? app, 0)]
+    if root == nil, let menu = attribute(app, kAXMenuBarAttribute),
+      CFGetTypeID(menu) == AXUIElementGetTypeID()
+    {
+      queue.append((unsafeBitCast(menu, to: AXUIElement.self), 0))
+    }
     var offset = 0
+    var visited = Set<AXUIElement>()
     var matches: [AXNode] = []
     let deadline = Date().addingTimeInterval(0.5)
     while offset < queue.count, offset < 600, Date() < deadline {
       let (element, depth) = queue[offset]
       offset += 1
+      guard visited.insert(element).inserted else { continue }
       let item = node(element)
       if matching(item) { matches.append(item) }
       guard depth < 16 else { continue }
@@ -156,7 +169,7 @@ final class AccessibilityClient: @unchecked Sendable {
       throw PilotError.unavailable("This field cannot be edited safely through Accessibility.")
     }
     guard NSWorkspace.shared.frontmostApplication?.processIdentifier == pid else {
-      throw PilotError.unsafe("WhatsApp lost focus. No text was entered.")
+      throw PilotError.unsafe("The target app lost focus. No text was entered.")
     }
     try token.check(revision: revision)
     if !old.isEmpty { try key(0, flags: .maskCommand, token: token, revision: revision) }
@@ -180,7 +193,7 @@ final class AccessibilityClient: @unchecked Sendable {
   {
     try token.check(revision: revision)
     guard NSWorkspace.shared.frontmostApplication?.processIdentifier == pid else {
-      throw PilotError.unsafe("WhatsApp lost focus.")
+      throw PilotError.unsafe("The target app lost focus.")
     }
     guard let down = CGEvent(keyboardEventSource: nil, virtualKey: code, keyDown: true),
       let up = CGEvent(keyboardEventSource: nil, virtualKey: code, keyDown: false)

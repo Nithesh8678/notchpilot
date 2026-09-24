@@ -1,7 +1,8 @@
 import Foundation
 
 public enum CommandKind: String, Codable, Sendable {
-  case openApp, contact, typeText, send, cancel, unsupported
+  case openApp, openURL, openPath, contact, typeText, send, click, search, scroll, volume, media,
+    window, key, cancel, unsupported
 }
 public struct Command: Equatable, Sendable {
   public let id: Int
@@ -26,13 +27,13 @@ public enum TextNormalization {
     .split(whereSeparator: { $0.isWhitespace }).joined(separator: " ")
   }
 }
-/// Deliberately narrow grammar. Dictation is opaque except an explicit terminal send clause.
+/// Clause grammar for local desktop actions. Dictation remains opaque except terminal send.
 public struct StreamingCommandParser: Sendable {
   public init() {}
   public func parse(_ text: String) -> [Command] {
     let source = text as NSString
     let pattern =
-      #"(?i)(?:^\s*(?:please\s+)?|[,;]\s*(?:(?:and|then|after that)\s+)?|\s+(?:and|then|after that)\s+)(open|launch|focus|go to|type|say|send|cancel)\b\s*"#
+      #"(?i)(?:^\s*(?:(?:please|can you|could you|would you)\s+)?|[,;]\s*(?:(?:and|then|after that)\s+)?|\s+(?:and|then|after that)\s+)(open folder|open file|open|launch|focus|switch to|bring up|visit|browse to|go to|search for|search|click|choose|select all|select|press|scroll|set volume to|volume up|volume down|increase volume|decrease volume|mute|unmute|play|pause|resume|next track|previous track|minimize|maximize|new tab|new window|back|forward|reload|refresh|copy|paste|undo|redo|type|say|send|cancel)\b\s*"#
     guard let regex = try? NSRegularExpression(pattern: pattern) else { return [] }
     let matches = regex.matches(in: text, range: NSRange(location: 0, length: source.length))
     var commands: [Command] = []
@@ -42,7 +43,20 @@ public struct StreamingCommandParser: Sendable {
       let next = index + 1 < matches.count ? matches[index + 1].range.location : source.length
       let kind: CommandKind
       switch verb {
-      case "open", "launch", "focus": kind = .openApp
+      case "open", "launch", "focus", "switch to", "bring up": kind = .openApp
+      case "visit", "browse to": kind = .openURL
+      case "open folder", "open file": kind = .openPath
+      case "click", "choose", "select": kind = .click
+      case "search", "search for": kind = .search
+      case "scroll": kind = .scroll
+      case "set volume to", "volume up", "volume down", "increase volume", "decrease volume",
+        "mute", "unmute":
+        kind = .volume
+      case "play", "pause", "resume", "next track", "previous track": kind = .media
+      case "minimize", "maximize": kind = .window
+      case "press", "new tab", "new window", "back", "forward", "reload", "refresh", "copy",
+        "paste", "undo", "redo", "select all":
+        kind = .key
       case "go to": kind = .contact
       case "type", "say": kind = .typeText
       case "send": kind = .send
@@ -77,6 +91,11 @@ public struct StreamingCommandParser: Sendable {
         if value.isEmpty {
           commands.append(Command(id: commands.count, kind: kind, value: "", endOffset: next))
         }
+      } else if [.volume, .media, .window, .key].contains(kind) {
+        let argument =
+          verb == "press" || verb == "set volume to"
+          ? value : (verb + " " + value).trimmingCharacters(in: .whitespaces)
+        commands.append(Command(id: commands.count, kind: kind, value: argument, endOffset: next))
       } else if !value.isEmpty {
         commands.append(Command(id: commands.count, kind: kind, value: value, endOffset: next))
       }

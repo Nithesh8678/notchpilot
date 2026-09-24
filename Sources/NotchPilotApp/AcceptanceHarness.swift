@@ -1,5 +1,6 @@
 import AppKit
 import ApplicationServices
+import Carbon
 import NotchPilotCore
 
 @MainActor enum AcceptanceHarness {
@@ -21,18 +22,30 @@ import NotchPilotCore
     report["microphone_granted"] = controller.permissions.microphone == .authorized
     report["accessibility_granted"] = controller.permissions.accessibility
     controller.overlay.hide()
-    press(49, flags: .maskAlternate)
+    var flags: CGEventFlags = []
+    let modifiers = controller.settings.hotkeyModifiers
+    if modifiers & UInt32(optionKey) != 0 { flags.insert(.maskAlternate) }
+    if modifiers & UInt32(controlKey) != 0 { flags.insert(.maskControl) }
+    if modifiers & UInt32(cmdKey) != 0 { flags.insert(.maskCommand) }
+    if modifiers & UInt32(shiftKey) != 0 { flags.insert(.maskShift) }
+    let code = CGKeyCode(controller.settings.hotkeyCode)
+    press(code, flags: flags)
     await pause(1)
     report["hotkey_starts_listening"] = controller.listening
     report["hotkey_shows_overlay"] = controller.overlay.visible
-    press(49, flags: .maskAlternate)
+    if controller.listening {
+      report["hotkey_callback_overlay_submit_ms"] = controller.performance.hotkeyMilliseconds
+    }
+    press(code, flags: flags)
     await pause(0.5)
-    report["second_hotkey_stops"] = !controller.listening
-    press(49, flags: .maskAlternate)
+    report["second_hotkey_stops"] =
+      (report["hotkey_starts_listening"] as? Bool == true) && !controller.listening
+    press(code, flags: flags)
     await pause(0.5)
+    let restarted = controller.listening
     press(53)
     await pause(0.5)
-    report["escape_cancels"] = !controller.listening
+    report["escape_cancels"] = restarted && !controller.listening
     controller.overlay.hide()
     var latencies: [Double] = []
     for _ in 0..<30 {
@@ -107,6 +120,23 @@ import NotchPilotCore
         to: output)
     }
     await pipeline.cancel()
+  }
+  static func desktopSmoke(output: URL) async {
+    let adapter = DesktopAdapter(aliases: [:])
+    let token = CancellationToken()
+    var report: [String: Any] = [:]
+    let apps = await ApplicationCatalog.shared.applications()
+    report["installed_app_count"] = apps.count
+    for name in ["Calculator", "TextEdit", "Safari"] {
+      do {
+        _ = try await adapter.execute(
+          Command(id: 0, kind: .openApp, value: name, endOffset: 0), token: token, revision: 0,
+          policy: SafetyPolicy())
+        report[name + "_launch"] = true
+      } catch { report[name + "_launch"] = false }
+    }
+    try? JSONSerialization.data(withJSONObject: report, options: [.prettyPrinted, .sortedKeys])
+      .write(to: output)
   }
   static func whatsappDryRun(output: URL) async {
     let adapter = WhatsAppAdapter(aliases: [:])

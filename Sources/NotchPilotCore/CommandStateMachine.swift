@@ -107,6 +107,8 @@ public actor ActionQueue {
   private var completed: [Int: Command] = [:]
   private var worker: Task<Void, Never>?
   private var failed = false
+  private var failedAt: Int?
+  private var recoveryFloor = 0
   private var approvedRevision: Int?
   public init(
     adapter: any ApplicationAdapter, token: CancellationToken, policy: SafetyPolicy,
@@ -118,7 +120,17 @@ public actor ActionQueue {
     self.event = event
   }
   public func submit(_ batch: CommandBatch) {
-    guard !failed else { return }
+    if failed {
+      guard let failedAt,
+        let next = batch.commands.first(where: {
+          $0.id > failedAt && [.openApp, .openURL, .openPath].contains($0.kind)
+            && $0.endOffset <= batch.stableEnd
+        })
+      else { return }
+      recoveryFloor = next.id
+      failed = false
+      self.failedAt = nil
+    }
     revision = batch.revision
     token.update(revision: revision)
     // Revisions of already committed recipients are unsafe. Require a fresh session.
@@ -133,7 +145,7 @@ public actor ActionQueue {
       }
     }
     pending = batch.commands.filter { command in
-      guard command.endOffset <= batch.stableEnd else { return false }
+      guard command.id >= recoveryFloor, command.endOffset <= batch.stableEnd else { return false }
       if command.kind == .send && command.endOffset > batch.committedEnd { return false }
       if let old = completed[command.id], old == command { return false }
       return true
@@ -191,6 +203,7 @@ public actor ActionQueue {
         }
       } catch {
         failed = true
+        failedAt = command.id
         pending = []
         event(
           .init(kind: command.kind, status: "error: " + error.localizedDescription, milliseconds: 0)

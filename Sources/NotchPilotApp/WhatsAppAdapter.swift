@@ -6,6 +6,7 @@ actor WhatsAppAdapter: ApplicationAdapter {
   private let executor = MacExecutor()
   private let aliases: [String: String]
   private var client: AccessibilityClient?
+  private var targetPID: pid_t?
   private var recipient: String?
   private var draft = ""
   private var targetIsWhatsApp = false
@@ -24,12 +25,15 @@ actor WhatsAppAdapter: ApplicationAdapter {
     case .openApp:
       let pid = try await executor.launch(command.value, token: token)
       targetIsWhatsApp = TextNormalization.identity(command.value) == "whatsapp"
-      if targetIsWhatsApp { client = try AccessibilityClient(pid: pid) }
+      if targetIsWhatsApp { targetPID = pid }
+      client = nil
       return "success"
     case .contact:
-      guard targetIsWhatsApp, let client else {
+      guard targetIsWhatsApp, let targetPID else {
         throw PilotError.unsafe("Say ‘open WhatsApp’ before choosing a conversation.")
       }
+      let client = try self.client ?? AccessibilityClient(pid: targetPID)
+      self.client = client
       try await client.wait(token: token) { !client.windows().isEmpty }
       let target = ContactResolver.resolve(command.value, aliases: aliases)
       // Use the application's native File > Search menu command. Merely pressing
@@ -143,7 +147,7 @@ actor WhatsAppAdapter: ApplicationAdapter {
       draft = ""
       return "success"
     case .cancel: throw PilotError.cancelled
-    case .unsupported: throw PilotError.unavailable("I can’t do that yet.")
+    default: throw PilotError.unavailable("This action belongs to the general desktop adapter.")
     }
   }
   private func headerMatches(_ target: String, client: AccessibilityClient) -> Bool {

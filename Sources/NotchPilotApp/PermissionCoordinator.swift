@@ -19,6 +19,28 @@ import NotchPilotCore
     }
     refresh()
   }
+  @Published var repairStatus = ""
+  func repairAccessibility() async {
+    repairStatus = "Removing only NotchPilot’s stale approval…"
+    let success = await Task.detached(priority: .utility) {
+      let process = Process()
+      process.executableURL = URL(fileURLWithPath: "/usr/bin/tccutil")
+      process.arguments = ["reset", "Accessibility", "org.notchpilot.app"]
+      process.standardOutput = FileHandle.nullDevice
+      process.standardError = FileHandle.nullDevice
+      do {
+        try process.run()
+        process.waitUntilExit()
+        return process.terminationStatus == 0
+      } catch { return false }
+    }.value
+    repairStatus =
+      success
+      ? "Enable the newly listed NotchPilot entry. This reset affects no other app."
+      : "Remove NotchPilot with the minus button in Accessibility, then add the installed app again."
+    openAccessibility()
+    refresh()
+  }
   func openAccessibility() {
     let key = kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String
     _ = AXIsProcessTrustedWithOptions([key: true] as CFDictionary)

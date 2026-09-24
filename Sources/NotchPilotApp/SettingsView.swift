@@ -38,6 +38,15 @@ struct SettingsView: View {
             "Allows broad control of other apps. NotchPilot restricts this to supported actions and verifies the target before sending."
           ).font(.caption)
           Button("Refresh permission status") { permissions.refresh() }
+          if !permissions.accessibility {
+            Button("Repair approval after a rebuild") {
+              Task { await permissions.repairAccessibility() }
+            }
+            Text(
+              "If macOS shows NotchPilot enabled but this app says Needed, repair its stale signing record, then enable it once more. No other app’s permissions are reset."
+            ).font(.caption)
+          }
+          if !permissions.repairStatus.isEmpty { Text(permissions.repairStatus).font(.caption) }
         }
         Section("On-device speech") {
           TextField("Language identifier", text: $settings.language).accessibilityLabel(
@@ -135,7 +144,7 @@ struct SettingsView: View {
         }
         Section("Supported commands") {
           Text(
-            "Open WhatsApp, Safari, Notes, Finder, Calendar, Music, Calculator or System Settings.\n\nOpen WhatsApp, go to Mummy, type hi and send.\n\nType hi leaves a draft. ‘And send’ must be a separate trailing instruction. Escape cancels."
+            "Open any installed app by its Applications name. Try ‘open Spotify’, ‘open Safari, then new tab’, ‘visit example.com’, ‘open folder Downloads’, ‘scroll down’, ‘set volume to 30’, ‘click Play’, or ‘search for a topic’.\n\nIn a focused empty text field, say ‘type’ followed by your words. Generic controls cannot send messages, enter passwords, or operate terminals/security settings.\n\nWhatsApp has a verified conversation adapter: ‘open WhatsApp, go to Mummy, type hi and send’. Dry Run never sends."
           )
           Button("Show synthetic demo") { controller.startDemo() }
         }
@@ -182,12 +191,18 @@ struct HotkeyRecorder: NSViewRepresentable {
     updateNSView(view, context: context)
     return view
   }
+  private func shortcutTitle(code: UInt32, modifiers: UInt32) -> String {
+    var text = ""
+    for (flag, symbol) in [(controlKey, "⌃"), (optionKey, "⌥"), (shiftKey, "⇧"), (cmdKey, "⌘")] {
+      if modifiers & UInt32(flag) != 0 { text += symbol }
+    }
+    return text + (code == 49 ? " Space" : " Key \(code)") + " · Click to change"
+  }
   func updateNSView(_ view: RecorderButton, context: Context) {
     view.title =
       recording
       ? "Press a shortcut…"
-      : (code == 49 && modifiers == UInt32(optionKey)
-        ? "⌥ Space · Click to change" : "Shortcut \(code) · Click to change")
+      : shortcutTitle(code: code, modifiers: modifiers)
     view.onBegin = { recording = true }
     view.onKey = { event in
       if event.keyCode == 53 {
