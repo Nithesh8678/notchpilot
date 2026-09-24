@@ -44,15 +44,15 @@ Installed release with the MLX runtime, 100 direct dispatch samples and 30 overl
 
 | Measurement | Observed result |
 |---|---:|
-| Stable parser-to-mock-adapter dispatch | p50 **0.088 ms**, p95 **0.131 ms** |
-| Overlay window submission | p50 **4.22 ms**, p95 **7.78 ms** |
+| Stable parser-to-mock-adapter dispatch | p50 **0.106 ms**, p95 **0.164 ms** |
+| Overlay window submission | p50 **5.32 ms**, p95 **7.30 ms** |
 | Main-loop wake lateness during real MLX inference | p95 **1.23 ms** |
-| Native resident memory after harness | **90.3 MB** |
-| Later idle snapshot with Settings open | **0.0% CPU**, **90.7 MB RSS** |
+| Native resident memory after harness | **110.8 MB** |
+| 20-second idle sample with Settings open | median **0.0% CPU**, **97.5 MB RSS** |
 
-The sidecar returned its expected gated abstention. This run occurred before final permission renewal, so global-hotkey and live-microphone fields were false and are not counted as successful checks. App launching through the production adapter succeeded for Calculator, TextEdit, Safari and Finder; the catalog discovered 98 installed apps. Discovery count does not certify control of every app.
+The sidecar returned its expected gated abstention. Both permissions were approved. Global hotkey start, second-press stop and Escape cancellation passed in toggle mode. Actual hotkey callback-to-overlay submission was 9.23 ms in this run. App launching through the production adapter succeeded for Calculator, TextEdit, Safari and Finder; the catalog discovered 98 installed apps. Discovery count does not certify control of every app.
 
-The idle CPU figure is a snapshot, not a long-duration energy measurement. Earlier real-time paced synthetic speech independently produced a stable app-opening clause before finalization. Native memory excludes the separate MLX process and speech services hosted by macOS. The installed signature verified after model inference, with Python bytecode writes into the signed bundle disabled.
+The 20-second idle sample is not a long-duration energy measurement. Earlier real-time paced synthetic speech independently produced a stable app-opening clause before finalization. Native memory excludes the separate MLX process and speech services hosted by macOS. The installed signature verified after model inference, with Python bytecode writes into the signed bundle disabled.
 
 Targets: hotkey callback to visible overlay p50 <50 ms; stable direct clause to dispatch p50 <150 ms/p95 <300 ms; idle CPU <1%; native and speech components approximately <500 MB; sidecar approximately <2.5 GB. Third-party cold launches are excluded.
 

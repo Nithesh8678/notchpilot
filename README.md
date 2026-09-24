@@ -34,7 +34,7 @@ Say:
 
 ## Supported scope
 
-Launch/focus installed apps by their exact names in the standard Applications folders, including Finder and Safari. Open website addresses and named folders or exact file paths. Control system volume/mute. In apps exposing suitable Accessibility controls, enter text into an empty focused field, fill Search, press an exact uniquely named button or menu item, scroll, use safe navigation/editing shortcuts, and minimize/zoom windows. Playback controls require an accessible Play/Pause/Next/Previous button in the active app.
+Launch/focus installed apps by their names (case and speech-inserted spaces are normalized) in the standard Applications folders, including Finder and Safari. Open website addresses and named folders or exact file paths. Control system volume/mute. In apps exposing suitable Accessibility controls, enter text into an empty focused field, fill Search, press an exact uniquely named button or menu item, scroll, use safe navigation/editing shortcuts, and minimize/zoom windows. Playback controls require an accessible Play/Pause/Next/Previous button in the active app.
 
 The verified messaging workflow is specific to native WhatsApp for macOS. Generic controls cannot send messages or commit sensitive operations. They refuse ambiguous controls, password fields, terminals, password managers and security settings. Generic clicks, scrolling and keyboard shortcuts report dispatch; only dedicated adapters can verify application-specific outcomes. Dry Run prevents messaging sends; it does **not** suppress ordinary app launches, typing, clicks or volume changes.
 
@@ -49,6 +49,7 @@ No audio retention, transcript uploads, telemetry or automatic crash uploads. Tr
 ```bash
 ./scripts/build.sh       # release .app; build/NotchPilot.app points to it
 ./scripts/test.sh        # native and Python tests; no real messages
+./scripts/test-speech.sh # synthetic on-device speech -> real Calculator/TextEdit launches
 ./scripts/lint.sh        # formatting and repository checks
 ./scripts/benchmark.sh   # sequential local MLX CPU/GPU benchmarks and native harness
 ./scripts/package.sh     # verified ad-hoc local ZIP; not notarized
