@@ -18,7 +18,7 @@ struct SettingsView: View {
         Section("Welcome to NotchPilot") {
           Text("Speak locally. Act deliberately.").font(.title2.bold())
           Text(
-            "Audio and transcripts stay on this Mac. Dry Run enters a draft but never presses Send. Start with ‘open WhatsApp’. Press Escape at any time to cancel queued work."
+            "Audio and transcripts stay on this Mac. Try ‘open Safari’, ‘open Downloads’, or ‘set volume to 30’. Dry Run enters message drafts but never presses Send. Press Escape to cancel queued work."
           ).font(.callout)
         }
         Section("Permissions") {

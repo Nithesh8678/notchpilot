@@ -127,13 +127,16 @@ import NotchPilotCore
     var report: [String: Any] = [:]
     let apps = await ApplicationCatalog.shared.applications()
     report["installed_app_count"] = apps.count
-    for name in ["Calculator", "TextEdit", "Safari"] {
+    for name in ["Calculator", "TextEdit", "Safari", "Finder"] {
       do {
         _ = try await adapter.execute(
           Command(id: 0, kind: .openApp, value: name, endOffset: 0), token: token, revision: 0,
           policy: SafetyPolicy())
         report[name + "_launch"] = true
-      } catch { report[name + "_launch"] = false }
+      } catch {
+        report[name + "_launch"] = false
+        report[name + "_error"] = error.localizedDescription
+      }
     }
     try? JSONSerialization.data(withJSONObject: report, options: [.prettyPrinted, .sortedKeys])
       .write(to: output)

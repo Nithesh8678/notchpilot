@@ -19,7 +19,23 @@ actor ApplicationCatalog {
       manager.homeDirectoryForCurrentUser.appendingPathComponent("Applications"),
     ]
     var found: [String: InstalledApplication] = [:]
+    func add(_ url: URL) {
+      guard url.pathExtension == "app", let bundle = Bundle(url: url),
+        let identifier = bundle.bundleIdentifier
+      else { return }
+      let name =
+        bundle.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String
+        ?? url.deletingPathExtension().lastPathComponent
+      found[identifier] = InstalledApplication(name: name, identifier: identifier, url: url)
+    }
+    // Finder is outside the Applications directories. Safari is a Cryptex symlink:
+    // recursive package enumeration omits it on macOS 26, so inspect root entries too.
+    add(URL(fileURLWithPath: "/System/Library/CoreServices/Finder.app"))
     for root in roots {
+      for url in (try? manager.contentsOfDirectory(at: root, includingPropertiesForKeys: nil)) ?? []
+      {
+        add(url)
+      }
       guard
         let enumerator = manager.enumerator(
           at: root, includingPropertiesForKeys: [.isDirectoryKey],
@@ -30,13 +46,7 @@ actor ApplicationCatalog {
           enumerator.skipDescendants()
           continue
         }
-        guard url.pathExtension == "app", let bundle = Bundle(url: url),
-          let identifier = bundle.bundleIdentifier
-        else { continue }
-        let name =
-          bundle.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String
-          ?? url.deletingPathExtension().lastPathComponent
-        found[identifier] = InstalledApplication(name: name, identifier: identifier, url: url)
+        add(url)
       }
     }
     cached = Array(found.values)
